@@ -18,6 +18,7 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> {
   final HomeController homeController = Get.put(HomeController(HomeService()));
   final TextEditingController noteController = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -30,9 +31,6 @@ class _HomeViewState extends State<HomeView> {
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              // Navigate to the settings page. If the user leaves and returns
-              // to the app after it has been killed while running in the
-              // background, the navigation stack is restored.
               Get.toNamed(SettingsView.routeName);
             },
           ),
@@ -55,21 +53,32 @@ class _HomeViewState extends State<HomeView> {
                     alignment: Alignment.bottomCenter,
                     children: [
                       CameraPreview(homeController.cameraController!),
+                      Positioned(
+                        top: 16,
+                        right: 16,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(width: 2.0),
+                            borderRadius: BorderRadius.circular(50),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.cameraswitch_outlined,
+                                size: 24),
+                            onPressed: () async {
+                              await homeController.switchCamera();
+                            },
+                          ),
+                        ),
+                      ),
                       Padding(
                         padding: const EdgeInsets.all(16),
                         child: GestureDetector(
                           onTap: () async {
                             await homeController
-                                .captureImage(note: noteController.text.trim())
+                                .captureAndUpload(
+                                    note: noteController.text.trim())
                                 .then((image) {
                               noteController.text = '';
-                              if (image != null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                      content:
-                                          Text('Image saved: ${image.path}')),
-                                );
-                              }
                             });
                           },
                           child: Container(
@@ -103,7 +112,7 @@ class _HomeViewState extends State<HomeView> {
                             ),
                           ),
                         ),
-                      )
+                      ),
                     ],
                   ),
                 ),
@@ -126,7 +135,7 @@ class _HomeViewState extends State<HomeView> {
                     fillColor: Colors.white.withOpacity(0.5),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none, // Remove border line
+                      borderSide: BorderSide.none,
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                         vertical: 10, horizontal: 16),

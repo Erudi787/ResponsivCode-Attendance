@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:camera/camera.dart';
@@ -5,25 +6,43 @@ import 'package:get/get.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
+import 'package:http/http.dart' as http;
+import 'package:rts_locator/src/environment/config_contoller.dart';
+import 'package:rts_locator/src/environment/config_service.dart';
 import 'package:rts_locator/src/location/location_controller.dart';
 import 'package:rts_locator/src/location/location_service.dart';
 
 class HomeService {
   CameraController? _cameraController;
+  List<CameraDescription> _cameras = [];
+  int _selectedCameraIndex = 0;
+
   final LocationController locationController =
       Get.put(LocationController(LocationService()));
+  final ConfigController configController =
+      Get.put(ConfigController(ConfigService()));
 
   // Initialize the camera
   Future<void> initializeCamera() async {
-    final cameras = await availableCameras();
-    final firstCamera = cameras.first;
+    _cameras = await availableCameras();
+    await _initCameraController(_cameras[_selectedCameraIndex]);
+  }
 
+  // Initialize the camera controller with the selected camera
+  Future<void> _initCameraController(
+      CameraDescription cameraDescription) async {
     _cameraController = CameraController(
-      firstCamera,
+      cameraDescription,
       ResolutionPreset.high,
     );
 
     await _cameraController!.initialize();
+  }
+
+  // Switch between cameras
+  Future<void> switchCamera() async {
+    _selectedCameraIndex = (_selectedCameraIndex + 1) % _cameras.length;
+    await _initCameraController(_cameras[_selectedCameraIndex]);
   }
 
   // Capture an image and save it to the device
@@ -87,6 +106,28 @@ class HomeService {
 
     // Encode the image with the watermark
     return img.encodeJpg(watermark);
+  }
+
+  Future<String> uploadToCloud({required File imageFile}) async {
+    final cloudinaryResponse = http.MultipartRequest(
+        'POST', Uri.parse(configController.cloudinaryUrl.value))
+      ..fields['upload_preset'] = configController.locatorPreset.value
+      ..fields['api_key'] = configController.apiKey.value
+      ..fields['timestamp'] = DateTime.now().millisecondsSinceEpoch.toString()
+      ..files.add(
+        await http.MultipartFile.fromPath('file', imageFile.path,
+            filename: 'uploaded_image'),
+      );
+
+    var cloudinaryResponseBody = await cloudinaryResponse.send();
+    var cloudinaryRequest =
+        await http.Response.fromStream(cloudinaryResponseBody);
+
+    var cloudinaryResult = jsonDecode(cloudinaryRequest.body);
+
+    var uploadedUrl = cloudinaryResult['secure_url'];
+
+    return uploadedUrl;
   }
 
   // Dispose the camera

@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:rts_locator/src/home/home_view.dart';
+import 'package:rts_locator/src/login/login_view.dart';
 
 import 'sample_feature/sample_item_details_view.dart';
 import 'settings/settings_controller.dart';
@@ -35,6 +36,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     // Glue the SettingsController to the MaterialApp.
     //
+
+    final box = GetStorage();
+    final token = box.read("token");
+
     // The ListenableBuilder Widget listens to the SettingsController for changes.
     // Whenever the user updates their settings, the MaterialApp is rebuilt.
     return ListenableBuilder(
@@ -80,6 +85,11 @@ class MyApp extends StatelessWidget {
           // Flutter web url navigation and deep linking.
           getPages: [
             GetPage(
+              name: LoginView.routeName,
+              page: () => const LoginView(),
+              middlewares: [MyMiddleware()],
+            ),
+            GetPage(
               name: HomeView.routeName,
               page: () => const HomeView(),
               middlewares: [MyMiddleware()],
@@ -96,7 +106,8 @@ class MyApp extends StatelessWidget {
             ),
           ],
 
-          initialRoute: HomeView.routeName,
+          initialRoute:
+              token == null ? LoginView.routeName : HomeView.routeName,
 
           onInit: () async {
             await _restoreRoute();
