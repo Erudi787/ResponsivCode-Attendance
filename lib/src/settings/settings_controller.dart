@@ -47,4 +47,8 @@ class SettingsController with ChangeNotifier {
     // SettingService.
     await _settingsService.updateThemeMode(newThemeMode);
   }
+
+  Future<void> logout() async {
+    await _settingsService.logout();
+  }
 }

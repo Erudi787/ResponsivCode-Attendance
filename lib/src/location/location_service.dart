@@ -1,5 +1,7 @@
+import 'dart:convert';
+
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
+import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
 
 class LocationService {
@@ -14,7 +16,8 @@ class LocationService {
     if (await _requestPermission()) {
       try {
         return await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
+          locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.bestForNavigation),
         );
       } catch (e) {
         print('Error getting location: $e');
@@ -25,32 +28,40 @@ class LocationService {
   }
 
   // Get address from coordinates
-  Future<String?> _getAddressFromCoordinates(
-      double latitude, double longitude) async {
-    try {
-      List<Placemark> placemarks =
-          await placemarkFromCoordinates(latitude, longitude);
-      Placemark place = placemarks.first;
-      return '${place.street}, ${place.subLocality}, ${place.locality}, ${place.postalCode}, ${place.country}';
-    } catch (e) {
-      print('Error getting address: $e');
-      return null;
+  Future<String?> _getPlusCodeFromCoordinates(
+      double latitude, double longitude, String apiKey) async {
+    final url =
+        'https://maps.googleapis.com/maps/api/geocode/json?latlng=$latitude,$longitude&key=$apiKey';
+
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      if (data['status'] == 'OK' && data['results'] != null) {
+        return data['results'][0]['plus_code']['compound_code'] ??
+            data['results'][0]['plus_code'];
+      } else {
+        return 'Failed to fetch plus_code';
+      }
     }
+    return null;
   }
 
   // Get location and address
-  Future<Map<String, dynamic>> getLocationAndAddress() async {
+  Future<Map<String, dynamic>> getLocationAndAddress(
+      {required String apiKey}) async {
     final position = await _getCurrentLocation();
     if (position != null) {
       final latitude = position.latitude;
       final longitude = position.longitude;
-      final address = await _getAddressFromCoordinates(latitude, longitude);
+      final plusCode =
+          await _getPlusCodeFromCoordinates(latitude, longitude, apiKey);
 
-      print('Latitude: $latitude');
-      print('Longitude: $longitude');
-      print('Address: $address');
-
-      return {"latitude": latitude, "longitude": longitude, "address": address};
+      return {
+        "latitude": latitude,
+        "longitude": longitude,
+        "plus_code": plusCode
+      };
     }
     return {};
   }

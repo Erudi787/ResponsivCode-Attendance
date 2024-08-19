@@ -3,6 +3,8 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
+import 'package:rts_locator/src/location/location_controller.dart';
+import 'package:rts_locator/src/location/location_service.dart';
 import 'home_service.dart';
 
 class HomeController extends GetxController {
@@ -11,11 +13,13 @@ class HomeController extends GetxController {
   HomeController(this._homeService);
 
   CameraController? get cameraController => _homeService.cameraController;
+  final LocationController locationController =
+      Get.put(LocationController(LocationService()));
 
   @override
   void onInit() {
     super.onInit();
-    initializeCamera();
+    initializeCamera().then((_) => locationController.fetchLocation());
   }
 
   Future<void> initializeCamera() async {
@@ -32,6 +36,10 @@ class HomeController extends GetxController {
   Future<String> uploadToCloud({required File imageFile}) async {
     final imageUrl = await _homeService.uploadToCloud(imageFile: imageFile);
     return imageUrl;
+  }
+
+  Future<void> uploadToDatabase({required Map<String, dynamic> data}) async {
+    await _homeService.uploadToDatabase(data: data);
   }
 
   Future<void> captureAndUpload({required String note}) async {
@@ -69,9 +77,9 @@ class HomeController extends GetxController {
     );
 
     // Upload the image URL to your database
-    // await uploadToDatabase(data: {"image": uploadedUrl});
+    await uploadToDatabase(data: {"photo_url": uploadedUrl, 'note': note});
     Fluttertoast.showToast(
-      msg: 'Data uploaded to database!',
+      msg: 'Image Recorded!',
       toastLength: Toast.LENGTH_SHORT,
       gravity: ToastGravity.CENTER,
       timeInSecForIosWeb: 2,

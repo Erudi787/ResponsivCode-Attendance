@@ -11,6 +11,8 @@ class ConfigController extends GetxController {
   var apiUrl = ''.obs;
   var debug = false.obs;
 
+  var googleMapApiKey = ''.obs;
+
   var cloudName = ''.obs;
   var apiKey = ''.obs;
   var apiSecret = ''.obs;
@@ -30,6 +32,8 @@ class ConfigController extends GetxController {
   void loadConfig() {
     apiUrl.value = _configService.apiUrl;
     debug.value = _configService.debug;
+
+    googleMapApiKey.value = _configService.googleMapApiKey;
 
     cloudName.value = _configService.cloudName;
     apiKey.value = _configService.apiKey;

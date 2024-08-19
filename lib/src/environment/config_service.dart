@@ -5,6 +5,9 @@ class ConfigService {
   String apiUrl = dotenv.env['API_URL'] ?? '';
   bool debug = dotenv.env['DEBUG'] == 'true';
 
+  //Google Map Configuration
+  String googleMapApiKey = dotenv.env['GOOGLE_MAP_KEY'] ?? '';
+
   // Cloudinary Configuration
   String cloudName = dotenv.env['CLOUDINARY_CLOUD_NAME'] ?? '';
   String apiKey = dotenv.env['CLOUDINARY_API_KEY'] ?? '';

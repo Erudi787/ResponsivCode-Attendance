@@ -2,26 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:rts_locator/src/home/home_view.dart';
 import 'package:rts_locator/src/login/login_view.dart';
+import 'package:rts_locator/src/splash/splash_view.dart';
 
-import 'sample_feature/sample_item_details_view.dart';
 import 'settings/settings_controller.dart';
 import 'settings/settings_view.dart';
-
-class MyMiddleware extends GetMiddleware {
-  @override
-  RouteSettings? redirect(String? route) {
-    _saveCurrentRoute(route!);
-    return null;
-  }
-
-  Future<void> _saveCurrentRoute(String route) async {
-    final prefs = GetStorage();
-    await prefs.write('current_route', route);
-  }
-}
 
 /// The Widget that configures your application.
 class MyApp extends StatelessWidget {
@@ -35,10 +21,6 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Glue the SettingsController to the MaterialApp.
-    //
-
-    final box = GetStorage();
-    final token = box.read("token");
 
     // The ListenableBuilder Widget listens to the SettingsController for changes.
     // Whenever the user updates their settings, the MaterialApp is rebuilt.
@@ -85,43 +67,26 @@ class MyApp extends StatelessWidget {
           // Flutter web url navigation and deep linking.
           getPages: [
             GetPage(
+              name: SplashView.routeName,
+              page: () => SplashView(),
+            ),
+            GetPage(
               name: LoginView.routeName,
-              page: () => const LoginView(),
-              middlewares: [MyMiddleware()],
+              page: () => LoginView(),
             ),
             GetPage(
               name: HomeView.routeName,
               page: () => const HomeView(),
-              middlewares: [MyMiddleware()],
             ),
             GetPage(
               name: SettingsView.routeName,
               page: () => SettingsView(controller: settingsController),
-              middlewares: [MyMiddleware()],
-            ),
-            GetPage(
-              name: SampleItemDetailsView.routeName,
-              page: () => const SampleItemDetailsView(),
-              middlewares: [MyMiddleware()],
             ),
           ],
 
-          initialRoute:
-              token == null ? LoginView.routeName : HomeView.routeName,
-
-          onInit: () async {
-            await _restoreRoute();
-          },
+          initialRoute: SplashView.routeName,
         );
       },
     );
-  }
-
-  Future<void> _restoreRoute() async {
-    final prefs = GetStorage();
-    final savedRoute = prefs.read('current_route');
-    if (savedRoute != null && savedRoute.isNotEmpty) {
-      Get.toNamed(savedRoute);
-    }
   }
 }

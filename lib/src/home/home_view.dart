@@ -31,7 +31,7 @@ class _HomeViewState extends State<HomeView> {
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              Get.toNamed(SettingsView.routeName);
+              Get.offAllNamed(SettingsView.routeName);
             },
           ),
         ],

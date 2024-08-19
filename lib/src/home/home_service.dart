@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:camera/camera.dart';
+import 'package:dio/dio.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
@@ -16,6 +18,8 @@ class HomeService {
   CameraController? _cameraController;
   List<CameraDescription> _cameras = [];
   int _selectedCameraIndex = 0;
+  final Dio dio = Dio();
+  final box = GetStorage();
 
   final LocationController locationController =
       Get.put(LocationController(LocationService()));
@@ -91,7 +95,7 @@ class HomeService {
 
     // Add watermark
     final watermarkText =
-        'Latitude: ${locationController.latitude}\nLongitude: ${locationController.longitude}\nAddress: ${locationController.address}\nNote: $note';
+        'Latitude: ${locationController.latitude}\nLongitude: ${locationController.longitude}\nPlus Code: ${locationController.plusCode}\nNote: $note';
     final watermarkColor = img.ColorRgb8(255, 255, 255);
 
     final watermark = img.drawString(
@@ -128,6 +132,20 @@ class HomeService {
     var uploadedUrl = cloudinaryResult['secure_url'];
 
     return uploadedUrl;
+  }
+
+  Future<void> uploadToDatabase({required Map<String, dynamic> data}) async {
+    data['id'] = box.read('user_id');
+    data['long_lat'] =
+        '${locationController.latitude.value}, ${locationController.longitude.value}';
+    data['address'] = locationController.plusCode.value;
+
+    await dio.post('${configController.apiUrl.value}/attendance',
+        data: jsonEncode(data),
+        options: Options(
+          validateStatus: (status) => true,
+          headers: {'Content-Type': 'application/json'},
+        ));
   }
 
   // Dispose the camera
