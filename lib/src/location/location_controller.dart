@@ -15,6 +15,12 @@ class LocationController extends GetxController {
   var plusCode = ''.obs;
   var isLoading = false.obs;
 
+  @override
+  void onInit() {
+    super.onInit();
+    fetchLocation();
+  }
+
   Future fetchLocation() async {
     isLoading.value = true;
     final result = await _locationService.getLocationAndAddress(
