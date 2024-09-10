@@ -13,18 +13,18 @@ class LocationService {
 
   // Get the current location
   Future<Position?> _getCurrentLocation() async {
-    if (await _requestPermission()) {
-      try {
-        return await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(
-              accuracy: LocationAccuracy.bestForNavigation),
-        );
-      } catch (e) {
-        print('Error getting location: $e');
-        return null;
-      }
-    }
-    return null;
+    // if (await _requestPermission()) {
+    // try {
+    return await Geolocator.getCurrentPosition(
+      locationSettings:
+          const LocationSettings(accuracy: LocationAccuracy.bestForNavigation),
+    );
+    // } catch (e) {
+    // print('Error getting location: $e');
+    // return null;
+    // }
+    // }
+    // return null;
   }
 
   // Get address from coordinates

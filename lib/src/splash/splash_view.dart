@@ -27,21 +27,21 @@ class SplashView extends StatelessWidget {
           children: [
             Image.asset(
               'assets/background/rts_logo.png',
-              width: 100,
-              height: 100,
+              width: width * 0.25,
+              height: height * 0.120625,
             ),
             Padding(
-              padding: const EdgeInsets.only(top: 24),
+              padding: EdgeInsets.only(top: height * 0.02895),
               child: Text(
                 'RTS LOCATOR',
                 style: GoogleFonts.zenDots(
-                  fontSize: 20,
+                  fontSize: height * 0.024125,
                   fontWeight: FontWeight.w400,
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.only(top: 24),
+              padding: EdgeInsets.only(top: height * 0.02895),
               child: LinearPercentIndicator(
                 alignment: MainAxisAlignment.center,
                 animation: true,

@@ -95,8 +95,8 @@ class HomeService {
 
     // Add watermark
     final watermarkText =
-        'Latitude: ${locationController.latitude}\nLongitude: ${locationController.longitude}\nPlus Code: ${locationController.plusCode}\nNote: $note';
-    final watermarkColor = img.ColorRgb8(255, 255, 255);
+        'Latitude: ${locationController.latitude.value}\nLongitude: ${locationController.longitude.value}\nPlus Code: ${locationController.plusCode.value}\nNote: $note';
+    final watermarkColor = img.ColorRgb8(64, 224, 208);
 
     final watermark = img.drawString(
       image,
@@ -139,6 +139,7 @@ class HomeService {
     data['long_lat'] =
         '${locationController.latitude.value}, ${locationController.longitude.value}';
     data['address'] = locationController.plusCode.value;
+    data['picture_type'] = _selectedCameraIndex == 0 ? "back" : "selfie";
 
     await dio.post('${configController.apiUrl.value}/attendance',
         data: jsonEncode(data),

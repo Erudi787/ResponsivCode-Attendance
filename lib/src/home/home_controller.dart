@@ -8,6 +8,7 @@ import 'package:rts_locator/src/location/location_service.dart';
 import 'home_service.dart';
 
 class HomeController extends GetxController {
+  final isLoading = false.obs;
   final HomeService _homeService;
 
   HomeController(this._homeService);
@@ -19,7 +20,7 @@ class HomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    initializeCamera().then((_) => locationController.fetchLocation());
+    initializeCamera();
   }
 
   Future<void> initializeCamera() async {
@@ -28,24 +29,28 @@ class HomeController extends GetxController {
   }
 
   Future<File?> captureImage({required String note}) async {
+    isLoading.value = true;
     final image = await _homeService.captureImage(note: note);
     update(); // Notify GetX listeners
     return image;
   }
 
   Future<String> uploadToCloud({required File imageFile}) async {
+    isLoading.value = true;
     final imageUrl = await _homeService.uploadToCloud(imageFile: imageFile);
     return imageUrl;
   }
 
   Future<void> uploadToDatabase({required Map<String, dynamic> data}) async {
+    isLoading.value = true;
     await _homeService.uploadToDatabase(data: data);
   }
 
   Future<void> captureAndUpload({required String note}) async {
+    isLoading.value = true;
     Get.showSnackbar(const GetSnackBar(
         message: 'Starting process...', duration: Duration(seconds: 2)));
-    // Capture the image
+    //Capture the image
     final modifiedImage = await captureImage(note: note);
 
     if (modifiedImage == null) {
@@ -87,6 +92,7 @@ class HomeController extends GetxController {
       textColor: Colors.white,
       fontSize: 16.0,
     );
+    isLoading.value = false;
   }
 
   // Method to switch between cameras

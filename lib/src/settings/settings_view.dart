@@ -29,11 +29,14 @@ class SettingsView extends StatelessWidget {
         ),
       ),
       body: SizedBox(
-        height: height - 100,
+        height: height - height * 0.120625,
         width: width,
         child: Padding(
-          padding:
-              const EdgeInsets.only(left: 24, top: 47, right: 24, bottom: 47),
+          padding: EdgeInsets.only(
+              left: width * 0.06,
+              top: height * 0.05669375,
+              right: width * 0.06,
+              bottom: height * 0.05669375),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -74,12 +77,15 @@ class SettingsView extends StatelessWidget {
                       ),
                       borderRadius: BorderRadius.circular(10)),
                   child: Padding(
-                    padding: const EdgeInsets.only(
-                        left: 142, top: 15, right: 142, bottom: 15),
+                    padding: EdgeInsets.only(
+                        left: width * 0.355,
+                        top: height * 0.01809375,
+                        right: width * 0.355,
+                        bottom: height * 0.01809375),
                     child: Text(
                       "LOGOUT",
                       style: GoogleFonts.poppins(
-                          fontSize: 16,
+                          fontSize: height * 0.0193,
                           fontWeight: FontWeight.w500,
                           letterSpacing: 0.1,
                           color: Colors.white),

@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:rts_locator/src/home/home_controller.dart';
 import 'package:rts_locator/src/home/home_service.dart';
+import 'package:rts_locator/src/location/location_controller.dart';
+import 'package:rts_locator/src/location/location_service.dart';
 import 'package:rts_locator/src/settings/settings_view.dart';
 
 class HomeView extends StatefulWidget {
@@ -17,10 +19,21 @@ class HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<HomeView> {
   final HomeController homeController = Get.put(HomeController(HomeService()));
+  final LocationController locationController =
+      Get.put(LocationController(LocationService()));
   final TextEditingController noteController = TextEditingController();
 
   @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    locationController.fetchLocation();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    var height = MediaQuery.of(context).size.height;
+    var width = MediaQuery.of(context).size.width;
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
@@ -54,8 +67,8 @@ class _HomeViewState extends State<HomeView> {
                     children: [
                       CameraPreview(homeController.cameraController!),
                       Positioned(
-                        top: 16,
-                        right: 16,
+                        top: height * 0.0193,
+                        right: width * 0.04,
                         child: Container(
                           decoration: BoxDecoration(
                             border: Border.all(width: 2.0),
@@ -71,47 +84,85 @@ class _HomeViewState extends State<HomeView> {
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: GestureDetector(
-                          onTap: () async {
-                            await homeController
-                                .captureAndUpload(
-                                    note: noteController.text.trim())
-                                .then((image) {
-                              noteController.text = '';
-                            });
-                          },
-                          child: Container(
-                            height: 70,
-                            width: 240,
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                width: 2,
-                                style: BorderStyle.solid,
-                                color: const Color(0xffDFDFDF),
-                              ),
-                              borderRadius: BorderRadius.circular(50),
-                              color: Colors.black,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 10,
-                                  offset: const Offset(4, 0),
-                                ),
-                              ],
-                            ),
-                            child: Center(
-                              child: Text(
-                                "CAPTURE",
-                                style: GoogleFonts.inter(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
+                        padding: EdgeInsets.only(
+                            left: width * 0.04,
+                            top: height * 0.0193,
+                            right: width * 0.04,
+                            bottom: height * 0.0193),
+                        child: Obx(() {
+                          print(homeController.isLoading.value);
+                          return homeController.isLoading.value
+                              ? Container(
+                                  height: height * 0.0844375,
+                                  width: width * 0.6,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      width: 2,
+                                      style: BorderStyle.solid,
+                                      color: const Color(0xffDFDFDF),
+                                    ),
+                                    borderRadius: BorderRadius.circular(50),
+                                    color: Colors.grey,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        blurRadius: 10,
+                                        offset: const Offset(4, 0),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      "CAPTURE",
+                                      style: GoogleFonts.inter(
+                                        fontSize: height * 0.0193,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : GestureDetector(
+                                  onTap: () async {
+                                    await homeController
+                                        .captureAndUpload(
+                                            note: noteController.text.trim())
+                                        .then((image) {
+                                      noteController.text = '';
+                                    });
+                                  },
+                                  child: Container(
+                                    height: height * 0.0844375,
+                                    width: width * 0.6,
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        width: 2,
+                                        style: BorderStyle.solid,
+                                        color: const Color(0xffDFDFDF),
+                                      ),
+                                      borderRadius: BorderRadius.circular(50),
+                                      color: Colors.black,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.2),
+                                          blurRadius: 10,
+                                          offset: const Offset(4, 0),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        "CAPTURE",
+                                        style: GoogleFonts.inter(
+                                          fontSize: height * 0.0193,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                        }),
                       ),
                     ],
                   ),
@@ -121,12 +172,12 @@ class _HomeViewState extends State<HomeView> {
                   style: GoogleFonts.poppins(
                     color: Colors.black,
                     fontWeight: FontWeight.w400,
-                    fontSize: 16,
+                    fontSize: height * 0.0193,
                   ),
                   decoration: InputDecoration(
                     labelText: "Add your note here...",
                     labelStyle: GoogleFonts.inter(
-                      fontSize: 16,
+                      fontSize: height * 0.0193,
                       fontWeight: FontWeight.w600,
                       color: Colors.black,
                     ),
@@ -137,8 +188,8 @@ class _HomeViewState extends State<HomeView> {
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide.none,
                     ),
-                    contentPadding: const EdgeInsets.symmetric(
-                        vertical: 10, horizontal: 16),
+                    contentPadding: EdgeInsets.symmetric(
+                        vertical: height * 0.0120625, horizontal: width * 0.04),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
