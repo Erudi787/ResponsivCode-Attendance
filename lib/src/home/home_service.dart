@@ -3,6 +3,8 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
@@ -47,6 +49,15 @@ class HomeService {
   Future<void> switchCamera() async {
     _selectedCameraIndex = (_selectedCameraIndex + 1) % _cameras.length;
     await _initCameraController(_cameras[_selectedCameraIndex]);
+  }
+
+  Future<void> autoSwitchCamera({required int selectedIndex}) async {
+    if (selectedIndex == 0) {
+      await _initCameraController(_cameras[_selectedCameraIndex]);
+    } else {
+      _selectedCameraIndex = 1;
+      await _initCameraController(_cameras[_selectedCameraIndex]);
+    }
   }
 
   // Capture an image and save it to the device
@@ -139,14 +150,41 @@ class HomeService {
     data['long_lat'] =
         '${locationController.latitude.value}, ${locationController.longitude.value}';
     data['address'] = locationController.plusCode.value;
-    data['picture_type'] = _selectedCameraIndex == 0 ? "back" : "selfie";
+    data['picture_type'] = _selectedCameraIndex == 0
+        ? "back"
+        : data['attendance_type'] != "documentary"
+            ? "selfie"
+            : "documentary selfie";
 
-    await dio.post('${configController.apiUrl.value}/attendance',
-        data: jsonEncode(data),
-        options: Options(
-          validateStatus: (status) => true,
-          headers: {'Content-Type': 'application/json'},
-        ));
+    final response =
+        await dio.post('${configController.apiUrl.value}/attendance',
+            data: jsonEncode(data),
+            options: Options(
+              validateStatus: (status) => true,
+              headers: {'Content-Type': 'application/json'},
+            ));
+
+    if (response.statusCode == 200) {
+      Fluttertoast.showToast(
+        msg: response.data,
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.CENTER,
+        timeInSecForIosWeb: 5,
+        backgroundColor: Colors.black,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+    } else {
+      Fluttertoast.showToast(
+        msg: response.data,
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.CENTER,
+        timeInSecForIosWeb: 5,
+        backgroundColor: Colors.black,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+    }
   }
 
   // Dispose the camera
@@ -155,4 +193,5 @@ class HomeService {
   }
 
   CameraController? get cameraController => _cameraController;
+  int? get selectedCameraIndex => _selectedCameraIndex;
 }

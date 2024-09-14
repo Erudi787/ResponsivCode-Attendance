@@ -7,6 +7,7 @@ import 'package:rts_locator/src/home/home_service.dart';
 import 'package:rts_locator/src/location/location_controller.dart';
 import 'package:rts_locator/src/location/location_service.dart';
 import 'package:rts_locator/src/settings/settings_view.dart';
+import 'dart:math' as math;
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -17,17 +18,91 @@ class HomeView extends StatefulWidget {
   State<HomeView> createState() => _HomeViewState();
 }
 
-class _HomeViewState extends State<HomeView> {
+class _HomeViewState extends State<HomeView>
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   final HomeController homeController = Get.put(HomeController(HomeService()));
   final LocationController locationController =
       Get.put(LocationController(LocationService()));
-  final TextEditingController noteController = TextEditingController();
+  int _selectedIndex = 0;
+  late ValueNotifier<String> attendanceType =
+      ValueNotifier<String>("documentary");
+  late TabController _tabController;
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
     locationController.fetchLocation();
+    _tabController = TabController(length: 5, vsync: this);
+    _tabController.addListener(() {
+      _selectedIndex = _tabController.index;
+    });
+  }
+
+  void _addNoteDialog(BuildContext context) {
+    final TextEditingController noteController = TextEditingController();
+
+    showDialog(
+      barrierDismissible: false,
+      context: context,
+      builder: (BuildContext context) {
+        return ValueListenableBuilder(
+            valueListenable: attendanceType,
+            builder: (contex, attendance, _) {
+              return AlertDialog(
+                content: TextField(
+                  minLines: 1, // Starts with 1 line
+                  maxLines:
+                      null, // Allows the TextField to grow as more lines are inputted
+                  controller: noteController,
+                  style: GoogleFonts.poppins(
+                      fontSize: 20, fontWeight: FontWeight.w500),
+                  decoration: InputDecoration(
+                    labelText: 'Note:',
+                    labelStyle: GoogleFonts.poppins(
+                        fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                  keyboardType:
+                      TextInputType.multiline, // Allows for multiple lines
+                ),
+                actions: [
+                  Center(
+                    child: ElevatedButton(
+                      child: Text(
+                        'Confirm',
+                        style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black),
+                      ),
+                      onPressed: () async {
+                        // Handle the password verification logic here
+                        await homeController
+                            .captureAndUpload(
+                                note: noteController.text.trim(),
+                                attendanceType: attendance)
+                            .then((image) {
+                          noteController.text = '';
+                          homeController.isLoading.value = false;
+                        });
+
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ),
+                ],
+              );
+            });
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    _tabController.dispose();
+    homeController.cameraController!.dispose();
+    super.dispose();
   }
 
   @override
@@ -35,6 +110,7 @@ class _HomeViewState extends State<HomeView> {
     var height = MediaQuery.of(context).size.height;
     var width = MediaQuery.of(context).size.width;
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -59,146 +135,156 @@ class _HomeViewState extends State<HomeView> {
 
           return SizedBox(
             height: MediaQuery.of(context).size.height,
-            child: Column(
+            child: Stack(
+              alignment: Alignment.bottomCenter,
               children: [
-                Flexible(
-                  child: Stack(
-                    alignment: Alignment.bottomCenter,
-                    children: [
-                      CameraPreview(homeController.cameraController!),
-                      Positioned(
-                        top: height * 0.0193,
-                        right: width * 0.04,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(width: 2.0),
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(Icons.cameraswitch_outlined,
-                                size: 24),
-                            onPressed: () async {
-                              await homeController.switchCamera();
-                            },
-                          ),
-                        ),
+                SizedBox(
+                  height: height,
+                  width: width,
+                  child: homeController.selectedCameraIndex == 0
+                      ? CameraPreview(homeController.cameraController!)
+                      : Transform(
+                          alignment: Alignment.center,
+                          transform: Matrix4.identity()..rotateY(math.pi),
+                          child:
+                              CameraPreview(homeController.cameraController!)),
+                ),
+                if (_selectedIndex == 0)
+                  Positioned(
+                    top: height * 0.0193,
+                    right: width * 0.04,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(width: 2.0),
+                        borderRadius: BorderRadius.circular(50),
                       ),
-                      Padding(
-                        padding: EdgeInsets.only(
-                            left: width * 0.04,
-                            top: height * 0.0193,
-                            right: width * 0.04,
-                            bottom: height * 0.0193),
-                        child: Obx(() {
-                          print(homeController.isLoading.value);
-                          return homeController.isLoading.value
-                              ? Container(
-                                  height: height * 0.0844375,
-                                  width: width * 0.6,
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                      width: 2,
-                                      style: BorderStyle.solid,
-                                      color: const Color(0xffDFDFDF),
-                                    ),
-                                    borderRadius: BorderRadius.circular(50),
-                                    color: Colors.grey,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.2),
-                                        blurRadius: 10,
-                                        offset: const Offset(4, 0),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Center(
+                      child: IconButton(
+                        icon: const Icon(Icons.cameraswitch_outlined, size: 24),
+                        onPressed: () async {
+                          await homeController.switchCamera();
+                        },
+                      ),
+                    ),
+                  ),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Container(
+                      height: 180,
+                      width: width,
+                      color: Colors.transparent,
+                      child: Column(
+                        children: <Widget>[
+                          Align(
+                            alignment: Alignment.topCenter,
+                            child: SizedBox(
+                              height: 60,
+                              child: TabBar(
+                                isScrollable: true,
+                                tabAlignment: TabAlignment.center,
+                                dividerColor: Colors.transparent,
+                                indicatorColor: Colors.red,
+                                unselectedLabelColor: Colors.orange,
+                                labelColor: Colors.white,
+                                controller: _tabController,
+                                onTap: (value) async {
+                                  await homeController.autoSwitchCamera(
+                                      selectedIndex: value);
+                                  switch (value) {
+                                    case 0:
+                                      attendanceType.value = 'documentary';
+                                      break;
+                                    case 1:
+                                      attendanceType.value = 'time_in';
+                                      break;
+                                    case 2:
+                                      attendanceType.value = 'break_out';
+                                      break;
+                                    case 3:
+                                      attendanceType.value = 'break_in';
+                                      break;
+                                    case 4:
+                                      attendanceType.value = 'time_out';
+                                      break;
+                                  }
+                                },
+                                tabs: [
+                                  Tab(
                                     child: Text(
-                                      "CAPTURE",
-                                      style: GoogleFonts.inter(
-                                        fontSize: height * 0.0193,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.black,
-                                      ),
+                                      "DOCUMENTARY",
+                                      style: GoogleFonts.poppins(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w500),
                                     ),
                                   ),
-                                )
-                              : GestureDetector(
-                                  onTap: () async {
-                                    await homeController
-                                        .captureAndUpload(
-                                            note: noteController.text.trim())
-                                        .then((image) {
-                                      noteController.text = '';
-                                      homeController.isLoading.value = false;
-                                    });
-                                  },
-                                  child: Container(
-                                    height: height * 0.0844375,
-                                    width: width * 0.6,
+                                  Tab(
+                                    child: Text(
+                                      "TIME IN",
+                                      style: GoogleFonts.poppins(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w500),
+                                    ),
+                                  ),
+                                  Tab(
+                                    child: Text(
+                                      "BREAK OUT",
+                                      style: GoogleFonts.poppins(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w500),
+                                    ),
+                                  ),
+                                  Tab(
+                                    child: Text(
+                                      "BREAK IN",
+                                      style: GoogleFonts.poppins(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w500),
+                                    ),
+                                  ),
+                                  Tab(
+                                    child: Text(
+                                      "TIME OUT",
+                                      style: GoogleFonts.poppins(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w500),
+                                    ),
+                                  )
+                                ],
+                              ),
+                            ),
+                          ),
+                          Align(
+                            alignment: Alignment.center,
+                            child: GestureDetector(
+                              onTap: () async {
+                                _addNoteDialog(context);
+                              },
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Container(
+                                    height: 80,
+                                    width: 80,
                                     decoration: BoxDecoration(
-                                      border: Border.all(
-                                        width: 2,
-                                        style: BorderStyle.solid,
-                                        color: const Color(0xffDFDFDF),
-                                      ),
-                                      borderRadius: BorderRadius.circular(50),
-                                      color: Colors.black,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.2),
-                                          blurRadius: 10,
-                                          offset: const Offset(4, 0),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        "CAPTURE",
-                                        style: GoogleFonts.inter(
-                                          fontSize: height * 0.0193,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white,
-                                        ),
-                                      ),
+                                      border: Border.all(color: Colors.white),
+                                      borderRadius: BorderRadius.circular(100),
                                     ),
                                   ),
-                                );
-                        }),
+                                  const Icon(
+                                    Icons.fiber_manual_record,
+                                    color: Colors.white,
+                                    size: 95,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-                TextFormField(
-                  controller: noteController,
-                  style: GoogleFonts.poppins(
-                    color: Colors.black,
-                    fontWeight: FontWeight.w400,
-                    fontSize: height * 0.0193,
-                  ),
-                  decoration: InputDecoration(
-                    labelText: "Add your note here...",
-                    labelStyle: GoogleFonts.inter(
-                      fontSize: height * 0.0193,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black,
-                    ),
-                    floatingLabelBehavior: FloatingLabelBehavior.never,
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.5),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: EdgeInsets.symmetric(
-                        vertical: height * 0.0120625, horizontal: width * 0.04),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter some text';
-                    }
-                    return null;
-                  },
-                ),
+                    )
+                  ],
+                )
               ],
             ),
           );
