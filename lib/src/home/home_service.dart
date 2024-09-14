@@ -95,12 +95,12 @@ class HomeService {
 
     // Add watermark
     final watermarkText =
-        'Latitude: ${locationController.latitude.value}\nLongitude: ${locationController.longitude.value}\nPlus Code: ${locationController.plusCode.value}\nNote: $note';
+        'Latitude: ${locationController.latitude.value}\nLongitude: ${locationController.longitude.value}\nAddress: ${locationController.plusCode.value}\nNote: $note';
     final watermarkColor = img.ColorRgb8(64, 224, 208);
 
     final watermark = img.drawString(
       image,
-      font: img.arial48,
+      font: img.arial24,
       x: 10,
       y: 10,
       watermarkText,

@@ -129,6 +129,7 @@ class _HomeViewState extends State<HomeView> {
                                             note: noteController.text.trim())
                                         .then((image) {
                                       noteController.text = '';
+                                      homeController.isLoading.value = false;
                                     });
                                   },
                                   child: Container(

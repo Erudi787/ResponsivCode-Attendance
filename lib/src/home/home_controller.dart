@@ -37,13 +37,13 @@ class HomeController extends GetxController {
 
   Future<String> uploadToCloud({required File imageFile}) async {
     isLoading.value = true;
-    final imageUrl = await _homeService.uploadToCloud(imageFile: imageFile);
-    return imageUrl;
+    // final imageUrl = await _homeService.uploadToCloud(imageFile: imageFile);
+    return "imageUrl";
   }
 
   Future<void> uploadToDatabase({required Map<String, dynamic> data}) async {
     isLoading.value = true;
-    await _homeService.uploadToDatabase(data: data);
+    // await _homeService.uploadToDatabase(data: data);
   }
 
   Future<void> captureAndUpload({required String note}) async {
@@ -67,10 +67,10 @@ class HomeController extends GetxController {
     );
 
     // Upload to Cloudinary
-    final uploadedUrl = await uploadToCloud(imageFile: modifiedImage);
-    if (uploadedUrl.isEmpty) {
-      throw 'Image upload failed';
-    }
+    // final uploadedUrl = await uploadToCloud(imageFile: modifiedImage);
+    // if (uploadedUrl.isEmpty) {
+    //   throw 'Image upload failed';
+    // }
     Fluttertoast.showToast(
       msg: 'Image uploaded to cloud!',
       toastLength: Toast.LENGTH_SHORT,
@@ -82,7 +82,7 @@ class HomeController extends GetxController {
     );
 
     // Upload the image URL to your database
-    await uploadToDatabase(data: {"photo_url": uploadedUrl, 'note': note});
+    // await uploadToDatabase(data: {"photo_url": uploadedUrl, 'note': note});
     Fluttertoast.showToast(
       msg: 'Image Recorded!',
       toastLength: Toast.LENGTH_SHORT,
@@ -92,7 +92,7 @@ class HomeController extends GetxController {
       textColor: Colors.white,
       fontSize: 16.0,
     );
-    isLoading.value = false;
+    // isLoading.value = false;
   }
 
   // Method to switch between cameras
