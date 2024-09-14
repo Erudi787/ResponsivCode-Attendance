@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
 import 'package:http/http.dart' as http;
@@ -85,7 +85,7 @@ class HomeService {
         await newFile.writeAsBytes(watermarkedBytes);
 
         // Optionally, add the image to the gallery
-        await ImageGallerySaver.saveFile(newFile.path);
+        await ImageGallerySaverPlus.saveFile(newFile.path);
 
         // Return the path of the saved image
         return newFile;

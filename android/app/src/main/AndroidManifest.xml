@@ -16,7 +16,8 @@
     <application
         android:label="RTS LOCATOR"
         android:name="${applicationName}"
-        android:icon="@mipmap/rts_logo">
+        android:icon="@mipmap/rts_logo"
+        android:requestLegacyExternalStorage="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
