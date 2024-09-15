@@ -61,7 +61,11 @@ class HomeService {
   }
 
   // Capture an image and save it to the device
-  Future<File?> captureImage({required String note}) async {
+  Future<File?> captureImage(
+      {required String note,
+      required double latitude,
+      required double longitude,
+      required String plusCode}) async {
     if (_cameraController != null && _cameraController!.value.isInitialized) {
       // Capture the image
       final XFile? picture = await _cameraController!.takePicture();
@@ -77,8 +81,12 @@ class HomeService {
         final Uint8List imageBytes = await file.readAsBytes();
 
         // Add watermark
-        final Uint8List watermarkedBytes =
-            _addWatermark(imageBytes: imageBytes, note: note);
+        final Uint8List watermarkedBytes = _addWatermark(
+            imageBytes: imageBytes,
+            note: note,
+            latitude: latitude,
+            longitude: longitude,
+            plusCode: plusCode);
 
         // Save the watermarked image
         final File newFile = File(path);
@@ -96,7 +104,11 @@ class HomeService {
 
   // Add watermark to the image
   Uint8List _addWatermark(
-      {required Uint8List imageBytes, required String note}) {
+      {required Uint8List imageBytes,
+      required String note,
+      required double latitude,
+      required double longitude,
+      required String plusCode}) {
     // Load the image
     final image = img.decodeImage(imageBytes);
 
@@ -106,7 +118,7 @@ class HomeService {
 
     // Add watermark
     final watermarkText =
-        'Latitude: ${locationController.latitude.value}\nLongitude: ${locationController.longitude.value}\nAddress: ${locationController.plusCode.value}\nNote: $note';
+        'Latitude: $latitude\nLongitude: $longitude\nAddress: $plusCode\nNote: $note';
     final watermarkColor = img.ColorRgb8(64, 224, 208);
 
     final watermark = img.drawString(
@@ -147,9 +159,6 @@ class HomeService {
 
   Future<void> uploadToDatabase({required Map<String, dynamic> data}) async {
     data['id'] = box.read('user_id');
-    data['long_lat'] =
-        '${locationController.latitude.value}, ${locationController.longitude.value}';
-    data['address'] = locationController.plusCode.value;
     data['picture_type'] = _selectedCameraIndex == 0
         ? "back"
         : data['attendance_type'] != "documentary"

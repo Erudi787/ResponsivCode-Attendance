@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:camera/camera.dart';
+import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:rts_locator/src/location/location_controller.dart';
 import 'package:rts_locator/src/location/location_service.dart';
@@ -28,15 +30,21 @@ class HomeController extends GetxController {
     update(); // Notify GetX listeners
   }
 
-  Future<File?> captureImage({required String note}) async {
-    isLoading.value = true;
-    final image = await _homeService.captureImage(note: note);
+  Future<File?> captureImage(
+      {required String note,
+      required double latitude,
+      required double longitude,
+      required String plusCode}) async {
+    final image = await _homeService.captureImage(
+        note: note,
+        latitude: latitude,
+        longitude: longitude,
+        plusCode: plusCode);
     update(); // Notify GetX listeners
     return image;
   }
 
   Future<String> uploadToCloud({required File imageFile}) async {
-    isLoading.value = true;
     final imageUrl = await _homeService.uploadToCloud(imageFile: imageFile);
     return imageUrl;
   }
@@ -47,46 +55,56 @@ class HomeController extends GetxController {
   }
 
   Future<void> captureAndUpload(
-      {required String note, required String attendanceType}) async {
+      {required String note,
+      required String attendanceType,
+      required double latitude,
+      required double longitude,
+      required String plusCode}) async {
     isLoading.value = true;
     Get.showSnackbar(const GetSnackBar(
         message: 'Starting process...', duration: Duration(seconds: 2)));
     //Capture the image
-    final modifiedImage = await captureImage(note: note);
+    final modifiedImage = await captureImage(
+        note: note,
+        latitude: latitude,
+        longitude: longitude,
+        plusCode: plusCode);
 
     if (modifiedImage == null) {
       throw 'Image capture failed';
     }
-    // Fluttertoast.showToast(
-    //   msg: 'Image captured!',
-    //   toastLength: Toast.LENGTH_SHORT,
-    //   gravity: ToastGravity.CENTER,
-    //   timeInSecForIosWeb: 2,
-    //   backgroundColor: Colors.black,
-    //   textColor: Colors.white,
-    //   fontSize: 16.0,
-    // );
+    Fluttertoast.showToast(
+      msg: 'Image captured!',
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.CENTER,
+      timeInSecForIosWeb: 5,
+      backgroundColor: Colors.black,
+      textColor: Colors.white,
+      fontSize: 16.0,
+    );
 
     // Upload to Cloudinary
     final uploadedUrl = await uploadToCloud(imageFile: modifiedImage);
     if (uploadedUrl.isEmpty) {
       throw 'Image upload failed';
     }
-    // Fluttertoast.showToast(
-    //   msg: 'Image uploaded to cloud!',
-    //   toastLength: Toast.LENGTH_SHORT,
-    //   gravity: ToastGravity.CENTER,
-    //   timeInSecForIosWeb: 5,
-    //   backgroundColor: Colors.black,
-    //   textColor: Colors.white,
-    //   fontSize: 16.0,
-    // );
+    Fluttertoast.showToast(
+      msg: 'Image uploaded to cloud!',
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.CENTER,
+      timeInSecForIosWeb: 5,
+      backgroundColor: Colors.black,
+      textColor: Colors.white,
+      fontSize: 16.0,
+    );
 
     // Upload the image URL to your database
     await uploadToDatabase(data: {
       "photo_url": uploadedUrl,
       'note': note,
-      'attendance_type': attendanceType
+      'attendance_type': attendanceType,
+      'long_lat': '$latitude, $longitude',
+      'address': plusCode,
     });
 
     // isLoading.value = false;

@@ -15,13 +15,7 @@ class LocationController extends GetxController {
   var plusCode = ''.obs;
   var isLoading = false.obs;
 
-  @override
-  void onInit() {
-    super.onInit();
-    fetchLocation();
-  }
-
-  Future fetchLocation() async {
+  Future<Map<String, dynamic>> fetchLocation() async {
     isLoading.value = true;
     final result = await _locationService.getLocationAndAddress(
         apiKey: _configController.googleMapApiKey.toString());
@@ -32,5 +26,10 @@ class LocationController extends GetxController {
 
     isLoading.value = false;
     update();
+    return {
+      "latitude": result['latitude'],
+      "longitude": result['longitude'],
+      "plusCode": result['plus_code'],
+    };
   }
 }
