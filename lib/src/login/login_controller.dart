@@ -34,6 +34,8 @@ class LoginController extends GetxController {
       isLoading.value = false;
       Get.offAllNamed(HomeView.routeName);
       update();
+    } else {
+      isLoading.value = false;
     }
     update();
   }

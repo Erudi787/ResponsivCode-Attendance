@@ -19,6 +19,7 @@ class LoginService {
     if (response.statusCode == 200) {
       box.write('token', response.data['token']);
       box.write('user_id', response.data['user']);
+      box.write('fullname', response.data['fullname']);
       return {
         "flag": response.data['flag'],
         "message": response.data['message']

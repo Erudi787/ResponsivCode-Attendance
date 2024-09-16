@@ -119,7 +119,7 @@ class HomeService {
     // Add watermark
     final watermarkText =
         'Latitude: $latitude\nLongitude: $longitude\nAddress: $plusCode\nNote: $note';
-    final watermarkColor = img.ColorRgb8(64, 224, 208);
+    final watermarkColor = img.ColorRgb8(0, 0, 0);
 
     final watermark = img.drawString(
       image,

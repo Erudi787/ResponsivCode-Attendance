@@ -4,16 +4,26 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:rts_locator/src/login/login_controller.dart';
 import 'package:rts_locator/src/login/login_service.dart';
 
-class LoginView extends StatelessWidget {
-  LoginView({super.key});
+class LoginView extends StatefulWidget {
+  const LoginView({super.key});
 
   static const routeName = '/login';
 
+  @override
+  State<LoginView> createState() => _LoginViewState();
+}
+
+class _LoginViewState extends State<LoginView> {
   final LoginController _loginController =
       Get.put(LoginController(LoginService()));
+
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
   final TextEditingController _usernameController = TextEditingController();
+
   final TextEditingController _passwordController = TextEditingController();
+
+  bool passwordObscured = true;
 
   @override
   Widget build(BuildContext context) {
@@ -133,7 +143,7 @@ class LoginView extends StatelessWidget {
                                   ),
                                   Expanded(
                                     child: TextFormField(
-                                      obscureText: true,
+                                      obscureText: passwordObscured,
                                       controller: _passwordController,
                                       style: GoogleFonts.poppins(
                                           fontSize: height * 0.0168875,
@@ -152,6 +162,18 @@ class LoginView extends StatelessWidget {
                                           borderSide: BorderSide(
                                             color: Color(0xFFCC0F2B),
                                           ),
+                                        ),
+                                        suffixIcon: IconButton(
+                                          onPressed: () {
+                                            setState(() {
+                                              passwordObscured =
+                                                  !passwordObscured;
+                                            });
+                                          },
+                                          icon: passwordObscured
+                                              ? const Icon(Icons.visibility)
+                                              : const Icon(
+                                                  Icons.visibility_off),
                                         ),
                                       ),
                                       validator: (value) {

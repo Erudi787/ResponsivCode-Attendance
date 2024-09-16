@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:rts_locator/src/home/home_controller.dart';
 import 'package:rts_locator/src/home/home_service.dart';
@@ -32,11 +33,13 @@ class _HomeViewState extends State<HomeView>
   int _selectedIndex = 0;
   late ValueNotifier<String> attendanceType =
       ValueNotifier<String>("documentary");
+  final box = GetStorage();
   late TabController _tabController;
   double longitude = 0.0;
   double latitude = 0.0;
   String plusCode = '';
   String notes = '';
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -201,16 +204,53 @@ class _HomeViewState extends State<HomeView>
             appBar: AppBar(
               elevation: 0,
               scrolledUnderElevation: 0,
-              centerTitle: true,
-              title: const Text('RTS LOCATOR'),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.settings),
-                  onPressed: () {
-                    Get.offAllNamed(SettingsView.routeName);
-                  },
+              flexibleSpace: Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Stack(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(left: 6),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: SizedBox(
+                          width: 150,
+                          child: Center(
+                            child: Text(
+                              '${box.read('fullname')}',
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.center,
+                      child: Text(
+                        "RTS HR",
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 26,
+                        ),
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.settings,
+                          size: 26,
+                        ),
+                        onPressed: () {
+                          Get.offAllNamed(SettingsView.routeName);
+                        },
+                      ),
+                    )
+                  ],
                 ),
-              ],
+              ),
             ),
             body: GetBuilder<HomeController>(
               init: homeController,
@@ -224,37 +264,44 @@ class _HomeViewState extends State<HomeView>
                   height: MediaQuery.of(context).size.height,
                   child: Column(
                     children: [
-                      TextFormField(
-                        controller: noteController,
-                        style: GoogleFonts.poppins(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w400,
-                          fontSize: 20,
-                        ),
-                        decoration: InputDecoration(
-                          labelText: "Add your note here...",
-                          labelStyle: GoogleFonts.inter(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black,
+                      if (attendance == "documentary")
+                        Form(
+                          key: _formKey,
+                          child: TextFormField(
+                            minLines: 1,
+                            maxLines: null,
+                            controller: noteController,
+                            style: GoogleFonts.poppins(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w400,
+                              fontSize: 20,
+                            ),
+                            decoration: InputDecoration(
+                              labelText: "Add your note here...",
+                              labelStyle: GoogleFonts.inter(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black,
+                              ),
+                              floatingLabelBehavior:
+                                  FloatingLabelBehavior.never,
+                              filled: true,
+                              fillColor: Colors.grey.withOpacity(0.5),
+                              border: OutlineInputBorder(
+                                // borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(color: Colors.black),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 10, horizontal: 16),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter some text';
+                              }
+                              return null;
+                            },
                           ),
-                          floatingLabelBehavior: FloatingLabelBehavior.never,
-                          filled: true,
-                          fillColor: Colors.grey.withOpacity(0.5),
-                          border: OutlineInputBorder(
-                            // borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.black),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                              vertical: 10, horizontal: 16),
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter some text';
-                          }
-                          return null;
-                        },
-                      ),
                       Flexible(
                         child: Stack(
                           alignment: Alignment.bottomCenter,
@@ -420,26 +467,55 @@ class _HomeViewState extends State<HomeView>
                                                   onTap: () async {
                                                     _determinePosition()
                                                         .then((_) async {
-                                                      await homeController
-                                                          .captureAndUpload(
-                                                              note:
-                                                                  noteController
+                                                      if (attendance ==
+                                                          'documentary') {
+                                                        if (_formKey
+                                                            .currentState!
+                                                            .validate()) {
+                                                          await homeController
+                                                              .captureAndUpload(
+                                                                  note: noteController
                                                                       .text
                                                                       .trim(),
-                                                              attendanceType:
-                                                                  attendance,
-                                                              latitude:
-                                                                  latitude,
-                                                              longitude:
-                                                                  longitude,
-                                                              plusCode:
-                                                                  plusCode)
-                                                          .then((image) {
-                                                        noteController.text =
-                                                            '';
-                                                        homeController.isLoading
-                                                            .value = false;
-                                                      });
+                                                                  attendanceType:
+                                                                      attendance,
+                                                                  latitude:
+                                                                      latitude,
+                                                                  longitude:
+                                                                      longitude,
+                                                                  plusCode:
+                                                                      plusCode)
+                                                              .then((image) {
+                                                            noteController
+                                                                .clear();
+                                                            homeController
+                                                                .isLoading
+                                                                .value = false;
+                                                          });
+                                                        }
+                                                      } else {
+                                                        await homeController
+                                                            .captureAndUpload(
+                                                                note:
+                                                                    noteController
+                                                                        .text
+                                                                        .trim(),
+                                                                attendanceType:
+                                                                    attendance,
+                                                                latitude:
+                                                                    latitude,
+                                                                longitude:
+                                                                    longitude,
+                                                                plusCode:
+                                                                    plusCode)
+                                                            .then((image) {
+                                                          noteController
+                                                              .clear();
+                                                          homeController
+                                                              .isLoading
+                                                              .value = false;
+                                                        });
+                                                      }
                                                     });
                                                   },
                                                   child: Stack(
