@@ -13,6 +13,7 @@ class LocationController extends GetxController {
   var latitude = Rxn<double>();
   var longitude = Rxn<double>();
   var plusCode = ''.obs;
+  var address_complete = ''.obs;
   var isLoading = false.obs;
 
   Future<Map<String, dynamic>> fetchLocation() async {
@@ -23,6 +24,7 @@ class LocationController extends GetxController {
     latitude.value = result['latitude'];
     longitude.value = result['longitude'];
     plusCode.value = result['plus_code'];
+    address_complete.value = result['address_complete'];
 
     isLoading.value = false;
     update();
@@ -30,6 +32,7 @@ class LocationController extends GetxController {
       "latitude": result['latitude'],
       "longitude": result['longitude'],
       "plusCode": result['plus_code'],
+      "address_complete": result['address_complete'],
     };
   }
 }

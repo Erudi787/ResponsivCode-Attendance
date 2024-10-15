@@ -30,16 +30,19 @@ class HomeController extends GetxController {
     update(); // Notify GetX listeners
   }
 
-  Future<File?> captureImage(
-      {required String note,
-      required double latitude,
-      required double longitude,
-      required String plusCode}) async {
+  Future<File?> captureImage({
+    required String note,
+    required double latitude,
+    required double longitude,
+    required String plusCode,
+    required String address_complete,
+  }) async {
     final image = await _homeService.captureImage(
         note: note,
         latitude: latitude,
         longitude: longitude,
-        plusCode: plusCode);
+        plusCode: plusCode,
+        address_complete: address_complete);
     update(); // Notify GetX listeners
     return image;
   }
@@ -54,21 +57,25 @@ class HomeController extends GetxController {
     await _homeService.uploadToDatabase(data: data);
   }
 
-  Future<void> captureAndUpload(
-      {required String note,
-      required String attendanceType,
-      required double latitude,
-      required double longitude,
-      required String plusCode}) async {
+  Future<void> captureAndUpload({
+    required String note,
+    required String attendanceType,
+    required double latitude,
+    required double longitude,
+    required String plusCode,
+    required String address_complete,
+  }) async {
     isLoading.value = true;
     Get.showSnackbar(const GetSnackBar(
         message: 'Starting process...', duration: Duration(seconds: 2)));
     //Capture the image
     final modifiedImage = await captureImage(
-        note: note,
-        latitude: latitude,
-        longitude: longitude,
-        plusCode: plusCode);
+      note: note,
+      latitude: latitude,
+      longitude: longitude,
+      plusCode: plusCode,
+      address_complete: address_complete,
+    );
 
     if (modifiedImage == null) {
       throw 'Image capture failed';
@@ -105,6 +112,7 @@ class HomeController extends GetxController {
       'attendance_type': attendanceType,
       'long_lat': '$latitude, $longitude',
       'address': plusCode,
+      'address_complete': address_complete,
     });
 
     // isLoading.value = false;

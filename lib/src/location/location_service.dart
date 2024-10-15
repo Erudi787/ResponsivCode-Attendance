@@ -47,6 +47,26 @@ class LocationService {
     return null;
   }
 
+  Future<String?> _getAddressFromCoordinates(
+      double latitude, double longitude, String apiKey) async {
+    final url =
+        'https://maps.googleapis.com/maps/api/geocode/json?latlng=$latitude,$longitude&key=$apiKey';
+
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      if (data['status'] == 'OK' && data['results'] != null) {
+        print('Address: ${data['results'][0]}');
+        return data['results'][0]['plus_code']['compound_code'] ??
+            data['results'][0]['plus_code'];
+      } else {
+        return 'Failed to fetch address';
+      }
+    }
+    return null;
+  }
+
   // Get location and address
   Future<Map<String, dynamic>> getLocationAndAddress(
       {required String apiKey}) async {
@@ -56,11 +76,14 @@ class LocationService {
       final longitude = position.longitude;
       final plusCode =
           await _getPlusCodeFromCoordinates(latitude, longitude, apiKey);
+      final address_complete =
+          await _getAddressFromCoordinates(latitude, longitude, apiKey);
 
       return {
         "latitude": latitude,
         "longitude": longitude,
-        "plus_code": plusCode
+        "plus_code": plusCode,
+        "address_complete": address_complete,
       };
     }
     return {};

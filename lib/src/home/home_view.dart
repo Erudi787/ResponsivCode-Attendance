@@ -38,6 +38,7 @@ class _HomeViewState extends State<HomeView>
   double longitude = 0.0;
   double latitude = 0.0;
   String plusCode = '';
+  String address_complete = '';
   String notes = '';
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
@@ -86,7 +87,8 @@ class _HomeViewState extends State<HomeView>
       print("Hoy $address");
 
       setState(() {
-        plusCode = address!;
+        plusCode = address!['plus_code']!;
+        address_complete = address['address']!;
         longitude = position.longitude;
         latitude = position.latitude;
       });
@@ -95,25 +97,28 @@ class _HomeViewState extends State<HomeView>
     }
   }
 
-  Future<String?> _getAddressFromLatLng(
+  Future<Map<String, String>?> _getAddressFromLatLng(
       double lat, double lng, String apiKey) async {
-    try {
-      final url =
-          'https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$lng&key=$apiKey';
+    final url =
+        'https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$lng&key=$apiKey';
 
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
 
-        if (data['status'] == 'OK' && data['results'][0] != null) {
-          return data['plus_code']['compound_code'] ??
-              data['results'][0]['formatted_address'];
-        } else {
-          return 'Failed to fetch plus_code';
-        }
+      if (data['status'] == 'OK' && data['results'][0] != null) {
+        return {
+          "plus_code":
+              data['plus_code']['compound_code'] ?? "Failed to fetch plus_code",
+          "address": data['results'][0]['formatted_address'] ??
+              "Failed to fetch address"
+        };
+      } else {
+        return {
+          "plus_code": 'Failed to fetch plus_code',
+          "address": "Failed to fetch address"
+        };
       }
-    } catch (e) {
-      return e.toString();
     }
     return null;
   }
@@ -474,17 +479,18 @@ class _HomeViewState extends State<HomeView>
                                                             .validate()) {
                                                           await homeController
                                                               .captureAndUpload(
-                                                                  note: noteController
-                                                                      .text
-                                                                      .trim(),
-                                                                  attendanceType:
-                                                                      attendance,
-                                                                  latitude:
-                                                                      latitude,
-                                                                  longitude:
-                                                                      longitude,
-                                                                  plusCode:
-                                                                      plusCode)
+                                                            note: noteController
+                                                                .text
+                                                                .trim(),
+                                                            attendanceType:
+                                                                attendance,
+                                                            latitude: latitude,
+                                                            longitude:
+                                                                longitude,
+                                                            plusCode: plusCode,
+                                                            address_complete:
+                                                                address_complete,
+                                                          )
                                                               .then((image) {
                                                             noteController
                                                                 .clear();
@@ -496,18 +502,17 @@ class _HomeViewState extends State<HomeView>
                                                       } else {
                                                         await homeController
                                                             .captureAndUpload(
-                                                                note:
-                                                                    noteController
-                                                                        .text
-                                                                        .trim(),
-                                                                attendanceType:
-                                                                    attendance,
-                                                                latitude:
-                                                                    latitude,
-                                                                longitude:
-                                                                    longitude,
-                                                                plusCode:
-                                                                    plusCode)
+                                                          note: noteController
+                                                              .text
+                                                              .trim(),
+                                                          attendanceType:
+                                                              attendance,
+                                                          latitude: latitude,
+                                                          longitude: longitude,
+                                                          plusCode: plusCode,
+                                                          address_complete:
+                                                              address_complete,
+                                                        )
                                                             .then((image) {
                                                           noteController
                                                               .clear();

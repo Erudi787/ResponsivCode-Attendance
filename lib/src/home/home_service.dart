@@ -61,11 +61,13 @@ class HomeService {
   }
 
   // Capture an image and save it to the device
-  Future<File?> captureImage(
-      {required String note,
-      required double latitude,
-      required double longitude,
-      required String plusCode}) async {
+  Future<File?> captureImage({
+    required String note,
+    required double latitude,
+    required double longitude,
+    required String plusCode,
+    required String address_complete,
+  }) async {
     if (_cameraController != null && _cameraController!.value.isInitialized) {
       // Capture the image
       final XFile? picture = await _cameraController!.takePicture();
@@ -82,11 +84,13 @@ class HomeService {
 
         // Add watermark
         final Uint8List watermarkedBytes = _addWatermark(
-            imageBytes: imageBytes,
-            note: note,
-            latitude: latitude,
-            longitude: longitude,
-            plusCode: plusCode);
+          imageBytes: imageBytes,
+          note: note,
+          latitude: latitude,
+          longitude: longitude,
+          plusCode: plusCode,
+          address_complete: address_complete,
+        );
 
         // Save the watermarked image
         final File newFile = File(path);
@@ -103,12 +107,14 @@ class HomeService {
   }
 
   // Add watermark to the image
-  Uint8List _addWatermark(
-      {required Uint8List imageBytes,
-      required String note,
-      required double latitude,
-      required double longitude,
-      required String plusCode}) {
+  Uint8List _addWatermark({
+    required Uint8List imageBytes,
+    required String note,
+    required double latitude,
+    required double longitude,
+    required String plusCode,
+    required String address_complete,
+  }) {
     // Load the image
     final image = img.decodeImage(imageBytes);
 
@@ -118,7 +124,7 @@ class HomeService {
 
     // Add watermark
     final watermarkText =
-        'Latitude: $latitude\nLongitude: $longitude\nAddress: $plusCode\nNote: $note';
+        'Latitude: $latitude\nLongitude: $longitude\nPlus Code: $plusCode\nComplete Address: $address_complete\nNote: $note';
     final watermarkColor = img.ColorRgb8(0, 0, 0);
 
     final watermark = img.drawString(
