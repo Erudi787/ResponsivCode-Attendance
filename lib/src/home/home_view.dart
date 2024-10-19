@@ -40,6 +40,14 @@ class _HomeViewState extends State<HomeView>
   String plusCode = '';
   String address_complete = '';
   String notes = '';
+  ValueNotifier<bool> isNightShift = ValueNotifier<bool>(false);
+  ValueNotifier<Map<String, String>> tabHeader =
+      ValueNotifier<Map<String, String>>({
+    'TIME IN': 'time_in',
+    'BREAK OUT': 'break_out',
+    'BREAK IN': 'break_in',
+    'TIME OUT': 'time_out'
+  });
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override
@@ -194,6 +202,8 @@ class _HomeViewState extends State<HomeView>
     // TODO: implement dispose
     _tabController.dispose();
     homeController.cameraController!.dispose();
+    isNightShift.dispose();
+    tabHeader.dispose();
     super.dispose();
   }
 
@@ -204,6 +214,7 @@ class _HomeViewState extends State<HomeView>
     return ValueListenableBuilder(
         valueListenable: attendanceType,
         builder: (context, attendance, _) {
+          print("Hoy $attendance");
           return Scaffold(
             resizeToAvoidBottomInset: false,
             appBar: AppBar(
@@ -351,132 +362,199 @@ class _HomeViewState extends State<HomeView>
                                   height: 180,
                                   width: width,
                                   color: Colors.transparent,
-                                  child: Column(
+                                  child: Stack(
                                     children: <Widget>[
-                                      Align(
-                                        alignment: Alignment.topCenter,
-                                        child: SizedBox(
-                                          height: 60,
-                                          child: TabBar(
-                                            isScrollable: true,
-                                            tabAlignment: TabAlignment.center,
-                                            dividerColor: Colors.transparent,
-                                            indicatorColor: Colors.red,
-                                            unselectedLabelColor: Colors.orange,
-                                            labelColor: Colors.white,
-                                            controller: _tabController,
-                                            onTap: (value) async {
-                                              await homeController
-                                                  .autoSwitchCamera(
-                                                      selectedIndex: value);
-                                              switch (value) {
-                                                case 0:
-                                                  attendanceType.value =
-                                                      'documentary';
-                                                  break;
-                                                case 1:
-                                                  attendanceType.value =
-                                                      'time_in';
-                                                  break;
-                                                case 2:
-                                                  attendanceType.value =
-                                                      'break_out';
-                                                  break;
-                                                case 3:
-                                                  attendanceType.value =
-                                                      'break_in';
-                                                  break;
-                                                case 4:
-                                                  attendanceType.value =
-                                                      'time_out';
-                                                  break;
-                                              }
-                                            },
-                                            tabs: [
-                                              Tab(
-                                                child: Text(
-                                                  "DOCUMENTARY",
-                                                  style: GoogleFonts.poppins(
-                                                      fontSize: 15,
-                                                      fontWeight:
-                                                          FontWeight.w500),
-                                                ),
-                                              ),
-                                              Tab(
-                                                child: Text(
-                                                  "TIME IN",
-                                                  style: GoogleFonts.poppins(
-                                                      fontSize: 15,
-                                                      fontWeight:
-                                                          FontWeight.w500),
-                                                ),
-                                              ),
-                                              Tab(
-                                                child: Text(
-                                                  "BREAK OUT",
-                                                  style: GoogleFonts.poppins(
-                                                      fontSize: 15,
-                                                      fontWeight:
-                                                          FontWeight.w500),
-                                                ),
-                                              ),
-                                              Tab(
-                                                child: Text(
-                                                  "BREAK IN",
-                                                  style: GoogleFonts.poppins(
-                                                      fontSize: 15,
-                                                      fontWeight:
-                                                          FontWeight.w500),
-                                                ),
-                                              ),
-                                              Tab(
-                                                child: Text(
-                                                  "TIME OUT",
-                                                  style: GoogleFonts.poppins(
-                                                      fontSize: 15,
-                                                      fontWeight:
-                                                          FontWeight.w500),
-                                                ),
-                                              )
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                      Align(
-                                        alignment: Alignment.center,
-                                        child: Obx(() {
-                                          return homeController.isLoading.value
-                                              ? Stack(
-                                                  alignment: Alignment.center,
-                                                  children: [
-                                                    Container(
-                                                      height: 80,
-                                                      width: 80,
-                                                      decoration: BoxDecoration(
-                                                        border: Border.all(
-                                                            color:
-                                                                Colors.white),
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(100),
+                                      ValueListenableBuilder<
+                                              Map<String, String>>(
+                                          valueListenable: tabHeader,
+                                          builder:
+                                              (context, tabHeaderValue, _) {
+                                            print("Hoy $tabHeaderValue");
+                                            return Align(
+                                              alignment: Alignment.topCenter,
+                                              child: SizedBox(
+                                                height: 60,
+                                                child: TabBar(
+                                                  isScrollable: true,
+                                                  tabAlignment:
+                                                      TabAlignment.center,
+                                                  dividerColor:
+                                                      Colors.transparent,
+                                                  indicatorColor: Colors.red,
+                                                  unselectedLabelColor:
+                                                      Colors.orange,
+                                                  labelColor: Colors.white,
+                                                  controller: _tabController,
+                                                  onTap: (value) async {
+                                                    await homeController
+                                                        .autoSwitchCamera(
+                                                            selectedIndex:
+                                                                value);
+                                                    switch (value) {
+                                                      case 0:
+                                                        attendanceType.value =
+                                                            'documentary';
+                                                        break;
+                                                      case 1:
+                                                        attendanceType.value =
+                                                            tabHeaderValue
+                                                                .values
+                                                                .elementAt(0);
+                                                        break;
+                                                      case 2:
+                                                        attendanceType.value =
+                                                            tabHeaderValue
+                                                                .values
+                                                                .elementAt(1);
+                                                        break;
+                                                      case 3:
+                                                        attendanceType.value =
+                                                            tabHeaderValue
+                                                                .values
+                                                                .elementAt(2);
+                                                        break;
+                                                      case 4:
+                                                        attendanceType.value =
+                                                            tabHeaderValue
+                                                                .values
+                                                                .elementAt(3);
+                                                        break;
+                                                    }
+                                                  },
+                                                  tabs: [
+                                                    Tab(
+                                                      child: Text(
+                                                        "DOCUMENTARY",
+                                                        style:
+                                                            GoogleFonts.poppins(
+                                                                fontSize: 15,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500),
                                                       ),
                                                     ),
-                                                    const Icon(
-                                                      Icons.fiber_manual_record,
-                                                      color: Colors.orange,
-                                                      size: 95,
+                                                    Tab(
+                                                      child: Text(
+                                                        tabHeaderValue.keys
+                                                            .elementAt(0),
+                                                        style:
+                                                            GoogleFonts.poppins(
+                                                                fontSize: 15,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500),
+                                                      ),
                                                     ),
+                                                    Tab(
+                                                      child: Text(
+                                                        tabHeaderValue.keys
+                                                            .elementAt(1),
+                                                        style:
+                                                            GoogleFonts.poppins(
+                                                                fontSize: 15,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500),
+                                                      ),
+                                                    ),
+                                                    Tab(
+                                                      child: Text(
+                                                        tabHeaderValue.keys
+                                                            .elementAt(2),
+                                                        style:
+                                                            GoogleFonts.poppins(
+                                                                fontSize: 15,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500),
+                                                      ),
+                                                    ),
+                                                    Tab(
+                                                      child: Text(
+                                                        tabHeaderValue.keys
+                                                            .elementAt(3),
+                                                        style:
+                                                            GoogleFonts.poppins(
+                                                                fontSize: 15,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500),
+                                                      ),
+                                                    )
                                                   ],
-                                                )
-                                              : GestureDetector(
-                                                  onTap: () async {
-                                                    _determinePosition()
-                                                        .then((_) async {
-                                                      if (attendance ==
-                                                          'documentary') {
-                                                        if (_formKey
-                                                            .currentState!
-                                                            .validate()) {
+                                                ),
+                                              ),
+                                            );
+                                          }),
+                                      Padding(
+                                        padding:
+                                            EdgeInsets.only(top: height * 0.05),
+                                        child: Align(
+                                          alignment: Alignment.center,
+                                          child: Obx(() {
+                                            return homeController
+                                                    .isLoading.value
+                                                ? Stack(
+                                                    alignment: Alignment.center,
+                                                    children: [
+                                                      Container(
+                                                        height: 80,
+                                                        width: 80,
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          border: Border.all(
+                                                              color:
+                                                                  Colors.white),
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
+                                                                      100),
+                                                        ),
+                                                      ),
+                                                      const Icon(
+                                                        Icons
+                                                            .fiber_manual_record,
+                                                        color: Colors.orange,
+                                                        size: 95,
+                                                      ),
+                                                    ],
+                                                  )
+                                                : GestureDetector(
+                                                    onTap: () async {
+                                                      _determinePosition()
+                                                          .then((_) async {
+                                                        if (attendance ==
+                                                            'documentary') {
+                                                          if (_formKey
+                                                              .currentState!
+                                                              .validate()) {
+                                                            await homeController
+                                                                .captureAndUpload(
+                                                              note:
+                                                                  noteController
+                                                                      .text
+                                                                      .trim(),
+                                                              attendanceType:
+                                                                  attendance,
+                                                              latitude:
+                                                                  latitude,
+                                                              longitude:
+                                                                  longitude,
+                                                              plusCode:
+                                                                  plusCode,
+                                                              address_complete:
+                                                                  address_complete,
+                                                            )
+                                                                .then((image) {
+                                                              noteController
+                                                                  .clear();
+                                                              homeController
+                                                                      .isLoading
+                                                                      .value =
+                                                                  false;
+                                                            });
+                                                          }
+                                                        } else {
                                                           await homeController
                                                               .captureAndUpload(
                                                             note: noteController
@@ -499,61 +577,143 @@ class _HomeViewState extends State<HomeView>
                                                                 .value = false;
                                                           });
                                                         }
-                                                      } else {
-                                                        await homeController
-                                                            .captureAndUpload(
-                                                          note: noteController
-                                                              .text
-                                                              .trim(),
-                                                          attendanceType:
-                                                              attendance,
-                                                          latitude: latitude,
-                                                          longitude: longitude,
-                                                          plusCode: plusCode,
-                                                          address_complete:
-                                                              address_complete,
-                                                        )
-                                                            .then((image) {
-                                                          noteController
-                                                              .clear();
-                                                          homeController
-                                                              .isLoading
-                                                              .value = false;
-                                                        });
-                                                      }
-                                                    });
-                                                  },
-                                                  child: Stack(
-                                                    alignment: Alignment.center,
-                                                    children: [
-                                                      Container(
-                                                        height: 80,
-                                                        width: 80,
-                                                        decoration:
-                                                            BoxDecoration(
-                                                          border: Border.all(
-                                                              color:
-                                                                  Colors.white),
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(
-                                                                      100),
+                                                      });
+                                                    },
+                                                    child: Stack(
+                                                      alignment:
+                                                          Alignment.center,
+                                                      children: [
+                                                        Container(
+                                                          height: 80,
+                                                          width: 80,
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            border: Border.all(
+                                                                color: Colors
+                                                                    .white),
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        100),
+                                                          ),
                                                         ),
-                                                      ),
-                                                      const Icon(
-                                                        Icons
-                                                            .fiber_manual_record,
-                                                        color: Colors.white,
-                                                        size: 95,
-                                                      ),
-                                                    ],
-                                                  ),
-                                                );
-                                        }),
-                                      )
+                                                        const Icon(
+                                                          Icons
+                                                              .fiber_manual_record,
+                                                          color: Colors.white,
+                                                          size: 95,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  );
+                                          }),
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: EdgeInsets.only(
+                                            top: height * 0.05,
+                                            right: width * 0.03),
+                                        child: Align(
+                                          alignment: Alignment.centerRight,
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              isNightShift.value =
+                                                  !isNightShift.value;
+                                            },
+                                            child: Container(
+                                              height: 80,
+                                              width: 100,
+                                              decoration: BoxDecoration(
+                                                border: Border.all(
+                                                    color: Colors.white),
+                                                borderRadius:
+                                                    BorderRadius.circular(15),
+                                              ),
+                                              child:
+                                                  ValueListenableBuilder<bool>(
+                                                valueListenable: isNightShift,
+                                                builder: (context,
+                                                    isNightShiftValue, _) {
+                                                  WidgetsBinding.instance
+                                                      .addPostFrameCallback(
+                                                          (_) {
+                                                    if (isNightShiftValue) {
+                                                      tabHeader.value = {
+                                                        'OVERTIME IN': 'ot_in',
+                                                        'OVERTIME BREAK OUT':
+                                                            'ot_break_out',
+                                                        'OVERTIME BREAK IN':
+                                                            'ot_break_in',
+                                                        'OVERTIME OUT': 'ot_out'
+                                                      };
+                                                    } else {
+                                                      tabHeader.value = {
+                                                        'TIME IN': 'time_in',
+                                                        'BREAK OUT':
+                                                            'break_out',
+                                                        'BREAK IN': 'break_in',
+                                                        'TIME OUT': 'time_out'
+                                                      };
+                                                    }
+                                                  });
+
+                                                  print(
+                                                      "Hoy $isNightShiftValue");
+
+                                                  return isNightShiftValue
+                                                      ? Column(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .spaceEvenly,
+                                                          children: [
+                                                            Image.asset(
+                                                              'assets/images/clock.png',
+                                                              width: 40,
+                                                              height: 40,
+                                                            ),
+                                                            Text(
+                                                              "NO OVERTIME",
+                                                              style: GoogleFonts.poppins(
+                                                                  fontSize: 13,
+                                                                  color: Colors
+                                                                      .orange,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w500),
+                                                            ),
+                                                          ],
+                                                        )
+                                                      : Column(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .spaceEvenly,
+                                                          children: [
+                                                            Image.asset(
+                                                              'assets/images/overtime.png',
+                                                              width: 40,
+                                                              height: 40,
+                                                            ),
+                                                            Text(
+                                                              "OVERTIME",
+                                                              style: GoogleFonts.poppins(
+                                                                  fontSize: 13,
+                                                                  color: Colors
+                                                                      .orange,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w500),
+                                                            ),
+                                                          ],
+                                                        );
+                                                },
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     ],
                                   ),
-                                )
+                                ),
                               ],
                             )
                           ],

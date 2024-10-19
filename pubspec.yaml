@@ -48,5 +48,6 @@ flutter:
   assets:
     # Add assets from the images directory to the application.
     - assets/background/
+    - assets/svg/
     - assets/images/
     - .env
