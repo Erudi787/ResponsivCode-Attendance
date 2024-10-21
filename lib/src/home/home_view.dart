@@ -25,14 +25,13 @@ class HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<HomeView>
-    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   final HomeController homeController = Get.put(HomeController(HomeService()));
   final LocationController locationController =
       Get.put(LocationController(LocationService()));
   final TextEditingController noteController = TextEditingController();
-  int _selectedIndex = 0;
-  late ValueNotifier<String> attendanceType =
-      ValueNotifier<String>("documentary");
+  int _selectedIndex = 1;
+  late ValueNotifier<String> attendanceType = ValueNotifier<String>("time_in");
   final box = GetStorage();
   late TabController _tabController;
   double longitude = 0.0;
@@ -40,9 +39,11 @@ class _HomeViewState extends State<HomeView>
   String plusCode = '';
   String address_complete = '';
   String notes = '';
-  ValueNotifier<bool> isNightShift = ValueNotifier<bool>(false);
+  bool isResetNeeded = true;
+  ValueNotifier<bool> isOverTime = ValueNotifier<bool>(false);
   ValueNotifier<Map<String, String>> tabHeader =
       ValueNotifier<Map<String, String>>({
+    'DOCUMENTARY': 'documentary',
     'TIME IN': 'time_in',
     'BREAK OUT': 'break_out',
     'BREAK IN': 'break_in',
@@ -54,7 +55,12 @@ class _HomeViewState extends State<HomeView>
   void initState() {
     // TODO: implement initState
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    update(tabHeader.value.length);
+  }
+
+  void update(int length) {
+    _tabController = TabController(
+        length: length, vsync: this, initialIndex: _selectedIndex);
     _tabController.addListener(() {
       _selectedIndex = _tabController.index;
     });
@@ -131,78 +137,12 @@ class _HomeViewState extends State<HomeView>
     return null;
   }
 
-  // void _addNoteDialog(BuildContext context) {
-  //   final TextEditingController noteController = TextEditingController();
-
-  //   showDialog(
-  //     // barrierDismissible: false,
-  //     context: context,
-  //     builder: (BuildContext context) {
-  //       return AlertDialog(
-  //         backgroundColor: Colors.white,
-  //         content: TextField(
-  //           minLines: 1, // Starts with 1 line
-  //           maxLines:
-  //               null, // Allows the TextField to grow as more lines are inputted
-  //           controller: noteController,
-  //           style: GoogleFonts.poppins(
-  //               fontSize: 20, fontWeight: FontWeight.w500, color: Colors.black),
-  //           decoration: InputDecoration(
-  //             focusColor: Colors.black,
-  //             fillColor: Colors.black,
-  //             hoverColor: Colors.black,
-  //             labelText: 'Note:',
-  //             labelStyle: GoogleFonts.poppins(
-  //                 fontSize: 16,
-  //                 fontWeight: FontWeight.w500,
-  //                 color: Colors.black),
-  //           ),
-  //           keyboardType: TextInputType.multiline, // Allows for multiple lines
-  //         ),
-  //         actions: [
-  //           Center(
-  //             child: GestureDetector(
-  //               child: Container(
-  //                 height: 50,
-  //                 width: 100,
-  //                 decoration: BoxDecoration(
-  //                     color: Colors.black,
-  //                     borderRadius: BorderRadius.all(Radius.circular(20))),
-  //                 child: Center(
-  //                   child: Text(
-  //                     'Confirm',
-  //                     style: GoogleFonts.poppins(
-  //                         fontSize: 16,
-  //                         fontWeight: FontWeight.w500,
-  //                         color: Colors.white),
-  //                   ),
-  //                 ),
-  //               ),
-  //               onTap: () async {
-  //                 // Handle the password verification logic here
-
-  //                 setState(() {
-  //                   notes = noteController.text.trim();
-  //                 });
-
-  //                 noteController.text = '';
-
-  //                 Navigator.of(context).pop();
-  //               },
-  //             ),
-  //           ),
-  //         ],
-  //       );
-  //     },
-  //   );
-  // }
-
   @override
   void dispose() {
     // TODO: implement dispose
     _tabController.dispose();
     homeController.cameraController!.dispose();
-    isNightShift.dispose();
+    isOverTime.dispose();
     tabHeader.dispose();
     super.dispose();
   }
@@ -211,6 +151,7 @@ class _HomeViewState extends State<HomeView>
   Widget build(BuildContext context) {
     var height = MediaQuery.of(context).size.height;
     var width = MediaQuery.of(context).size.width;
+    print("Hoy ${_tabController.index}");
     return ValueListenableBuilder(
         valueListenable: attendanceType,
         builder: (context, attendance, _) {
@@ -335,7 +276,7 @@ class _HomeViewState extends State<HomeView>
                                       child: CameraPreview(
                                           homeController.cameraController!)),
                             ),
-                            if (_selectedIndex == 0)
+                            if (_tabController.index == 0)
                               Positioned(
                                 top: height * 0.0193,
                                 right: width * 0.04,
@@ -369,7 +310,6 @@ class _HomeViewState extends State<HomeView>
                                           valueListenable: tabHeader,
                                           builder:
                                               (context, tabHeaderValue, _) {
-                                            print("Hoy $tabHeaderValue");
                                             return Align(
                                               alignment: Alignment.topCenter,
                                               child: SizedBox(
@@ -386,6 +326,7 @@ class _HomeViewState extends State<HomeView>
                                                   labelColor: Colors.white,
                                                   controller: _tabController,
                                                   onTap: (value) async {
+                                                    print("Hoy value: $value");
                                                     await homeController
                                                         .autoSwitchCamera(
                                                             selectedIndex:
@@ -393,46 +334,37 @@ class _HomeViewState extends State<HomeView>
                                                     switch (value) {
                                                       case 0:
                                                         attendanceType.value =
-                                                            'documentary';
+                                                            tabHeaderValue
+                                                                .values
+                                                                .elementAt(0);
                                                         break;
                                                       case 1:
                                                         attendanceType.value =
                                                             tabHeaderValue
                                                                 .values
-                                                                .elementAt(0);
+                                                                .elementAt(1);
                                                         break;
                                                       case 2:
                                                         attendanceType.value =
                                                             tabHeaderValue
                                                                 .values
-                                                                .elementAt(1);
+                                                                .elementAt(2);
                                                         break;
                                                       case 3:
                                                         attendanceType.value =
                                                             tabHeaderValue
                                                                 .values
-                                                                .elementAt(2);
+                                                                .elementAt(3);
                                                         break;
                                                       case 4:
                                                         attendanceType.value =
                                                             tabHeaderValue
                                                                 .values
-                                                                .elementAt(3);
+                                                                .elementAt(4);
                                                         break;
                                                     }
                                                   },
                                                   tabs: [
-                                                    Tab(
-                                                      child: Text(
-                                                        "DOCUMENTARY",
-                                                        style:
-                                                            GoogleFonts.poppins(
-                                                                fontSize: 15,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w500),
-                                                      ),
-                                                    ),
                                                     Tab(
                                                       child: Text(
                                                         tabHeaderValue.keys
@@ -469,18 +401,34 @@ class _HomeViewState extends State<HomeView>
                                                                         .w500),
                                                       ),
                                                     ),
-                                                    Tab(
-                                                      child: Text(
-                                                        tabHeaderValue.keys
-                                                            .elementAt(3),
-                                                        style:
-                                                            GoogleFonts.poppins(
-                                                                fontSize: 15,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w500),
+                                                    if (tabHeaderValue.length !=
+                                                        3)
+                                                      Tab(
+                                                        child: Text(
+                                                          tabHeaderValue.keys
+                                                              .elementAt(3),
+                                                          style: GoogleFonts
+                                                              .poppins(
+                                                                  fontSize: 15,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w500),
+                                                        ),
                                                       ),
-                                                    )
+                                                    if (tabHeaderValue.length !=
+                                                        3)
+                                                      Tab(
+                                                        child: Text(
+                                                          tabHeaderValue.keys
+                                                              .elementAt(4),
+                                                          style: GoogleFonts
+                                                              .poppins(
+                                                                  fontSize: 15,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w500),
+                                                        ),
+                                                      )
                                                   ],
                                                 ),
                                               ),
@@ -617,8 +565,8 @@ class _HomeViewState extends State<HomeView>
                                           alignment: Alignment.centerRight,
                                           child: GestureDetector(
                                             onTap: () {
-                                              isNightShift.value =
-                                                  !isNightShift.value;
+                                              isOverTime.value =
+                                                  !isOverTime.value;
                                             },
                                             child: Container(
                                               height: 80,
@@ -631,23 +579,27 @@ class _HomeViewState extends State<HomeView>
                                               ),
                                               child:
                                                   ValueListenableBuilder<bool>(
-                                                valueListenable: isNightShift,
+                                                valueListenable: isOverTime,
                                                 builder: (context,
-                                                    isNightShiftValue, _) {
+                                                    isOverTimeValue, _) {
                                                   WidgetsBinding.instance
                                                       .addPostFrameCallback(
                                                           (_) {
-                                                    if (isNightShiftValue) {
+                                                    if (isOverTimeValue) {
                                                       tabHeader.value = {
+                                                        'DOCUMENTARY':
+                                                            'documentary',
                                                         'OVERTIME IN': 'ot_in',
-                                                        'OVERTIME BREAK OUT':
-                                                            'ot_break_out',
-                                                        'OVERTIME BREAK IN':
-                                                            'ot_break_in',
+                                                        // 'OVERTIME BREAK OUT':
+                                                        //     'ot_break_out',
+                                                        // 'OVERTIME BREAK IN':
+                                                        //     'ot_break_in',
                                                         'OVERTIME OUT': 'ot_out'
                                                       };
                                                     } else {
                                                       tabHeader.value = {
+                                                        'DOCUMENTARY':
+                                                            'documentary',
                                                         'TIME IN': 'time_in',
                                                         'BREAK OUT':
                                                             'break_out',
@@ -655,12 +607,26 @@ class _HomeViewState extends State<HomeView>
                                                         'TIME OUT': 'time_out'
                                                       };
                                                     }
+
+                                                    if (isOverTimeValue &&
+                                                        isResetNeeded &&
+                                                        _selectedIndex != 1) {
+                                                      _selectedIndex = 1;
+                                                      isResetNeeded = false;
+                                                    }
+
+                                                    if (!isOverTimeValue &&
+                                                        !isResetNeeded &&
+                                                        _selectedIndex != 1) {
+                                                      _selectedIndex = 1;
+                                                      isResetNeeded = true;
+                                                    }
+
+                                                    update(
+                                                        tabHeader.value.length);
                                                   });
 
-                                                  print(
-                                                      "Hoy $isNightShiftValue");
-
-                                                  return isNightShiftValue
+                                                  return isOverTimeValue
                                                       ? Column(
                                                           mainAxisAlignment:
                                                               MainAxisAlignment

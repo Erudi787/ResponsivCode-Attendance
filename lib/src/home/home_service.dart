@@ -19,7 +19,7 @@ import 'package:rts_locator/src/location/location_service.dart';
 class HomeService {
   CameraController? _cameraController;
   List<CameraDescription> _cameras = [];
-  int _selectedCameraIndex = 0;
+  int _selectedCameraIndex = 1;
   final Dio dio = Dio();
   final box = GetStorage();
 
@@ -52,6 +52,7 @@ class HomeService {
   }
 
   Future<void> autoSwitchCamera({required int selectedIndex}) async {
+    print("Hoy Selected Index: $selectedIndex");
     if (selectedIndex == 0) {
       await _initCameraController(_cameras[_selectedCameraIndex]);
     } else {
