@@ -49,6 +49,7 @@ class _HomeViewState extends State<HomeView>
     'BREAK IN': 'break_in',
     'TIME OUT': 'time_out'
   });
+  ValueNotifier<String> tabHeaderKey = ValueNotifier<String>('TIME IN');
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override
@@ -151,11 +152,9 @@ class _HomeViewState extends State<HomeView>
   Widget build(BuildContext context) {
     var height = MediaQuery.of(context).size.height;
     var width = MediaQuery.of(context).size.width;
-    print("Hoy ${_tabController.index}");
     return ValueListenableBuilder(
         valueListenable: attendanceType,
         builder: (context, attendance, _) {
-          print("Hoy $attendance");
           return Scaffold(
             resizeToAvoidBottomInset: false,
             appBar: AppBar(
@@ -310,6 +309,10 @@ class _HomeViewState extends State<HomeView>
                                           valueListenable: tabHeader,
                                           builder:
                                               (context, tabHeaderValue, _) {
+                                            print(
+                                                "Hoy TabHeader: ${tabHeaderKey.value}");
+                                            print(
+                                                "Hoy AtttendanceType: ${attendanceType.value}");
                                             return Align(
                                               alignment: Alignment.topCenter,
                                               child: SizedBox(
@@ -327,6 +330,7 @@ class _HomeViewState extends State<HomeView>
                                                   controller: _tabController,
                                                   onTap: (value) async {
                                                     print("Hoy value: $value");
+
                                                     await homeController
                                                         .autoSwitchCamera(
                                                             selectedIndex:
@@ -337,11 +341,17 @@ class _HomeViewState extends State<HomeView>
                                                             tabHeaderValue
                                                                 .values
                                                                 .elementAt(0);
+                                                        tabHeaderKey.value =
+                                                            tabHeaderValue.keys
+                                                                .elementAt(0);
                                                         break;
                                                       case 1:
                                                         attendanceType.value =
                                                             tabHeaderValue
                                                                 .values
+                                                                .elementAt(1);
+                                                        tabHeaderKey.value =
+                                                            tabHeaderValue.keys
                                                                 .elementAt(1);
                                                         break;
                                                       case 2:
@@ -349,17 +359,26 @@ class _HomeViewState extends State<HomeView>
                                                             tabHeaderValue
                                                                 .values
                                                                 .elementAt(2);
+                                                        tabHeaderKey.value =
+                                                            tabHeaderValue.keys
+                                                                .elementAt(2);
                                                         break;
                                                       case 3:
                                                         attendanceType.value =
                                                             tabHeaderValue
                                                                 .values
                                                                 .elementAt(3);
+                                                        tabHeaderKey.value =
+                                                            tabHeaderValue.keys
+                                                                .elementAt(3);
                                                         break;
                                                       case 4:
                                                         attendanceType.value =
                                                             tabHeaderValue
                                                                 .values
+                                                                .elementAt(4);
+                                                        tabHeaderKey.value =
+                                                            tabHeaderValue.keys
                                                                 .elementAt(4);
                                                         break;
                                                     }
@@ -490,6 +509,9 @@ class _HomeViewState extends State<HomeView>
                                                                   longitude,
                                                               plusCode:
                                                                   plusCode,
+                                                              tabHeader:
+                                                                  tabHeaderKey
+                                                                      .value,
                                                               address_complete:
                                                                   address_complete,
                                                             )
@@ -514,6 +536,9 @@ class _HomeViewState extends State<HomeView>
                                                             longitude:
                                                                 longitude,
                                                             plusCode: plusCode,
+                                                            tabHeader:
+                                                                tabHeaderKey
+                                                                    .value,
                                                             address_complete:
                                                                 address_complete,
                                                           )
@@ -612,6 +637,10 @@ class _HomeViewState extends State<HomeView>
                                                         isResetNeeded &&
                                                         _selectedIndex != 1) {
                                                       _selectedIndex = 1;
+                                                      attendanceType.value =
+                                                          'ot_in';
+                                                      tabHeaderKey.value =
+                                                          'OVERTIME IN';
                                                       isResetNeeded = false;
                                                     }
 
@@ -619,6 +648,10 @@ class _HomeViewState extends State<HomeView>
                                                         !isResetNeeded &&
                                                         _selectedIndex != 1) {
                                                       _selectedIndex = 1;
+                                                      attendanceType.value =
+                                                          'time_in';
+                                                      tabHeaderKey.value =
+                                                          'TIME IN';
                                                       isResetNeeded = true;
                                                     }
 

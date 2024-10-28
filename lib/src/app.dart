@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
+import 'package:rts_locator/src/dtr_logs/view/dtr_logs_view.dart';
 import 'package:rts_locator/src/home/home_view.dart';
 import 'package:rts_locator/src/login/login_view.dart';
 import 'package:rts_locator/src/splash/splash_view.dart';
@@ -79,12 +80,14 @@ class MyApp extends StatelessWidget {
               page: () => const HomeView(),
             ),
             GetPage(
+                name: DtrLogsView.routeName, page: () => const DtrLogsView()),
+            GetPage(
               name: SettingsView.routeName,
               page: () => SettingsView(controller: settingsController),
             ),
           ],
 
-          initialRoute: SplashView.routeName,
+          initialRoute: DtrLogsView.routeName,
         );
       },
     );

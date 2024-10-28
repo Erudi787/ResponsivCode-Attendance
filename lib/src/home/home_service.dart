@@ -67,6 +67,7 @@ class HomeService {
     required double latitude,
     required double longitude,
     required String plusCode,
+    required String tabHeader,
     required String address_complete,
   }) async {
     if (_cameraController != null && _cameraController!.value.isInitialized) {
@@ -90,6 +91,7 @@ class HomeService {
           latitude: latitude,
           longitude: longitude,
           plusCode: plusCode,
+          tabHeader: tabHeader,
           address_complete: address_complete,
         );
 
@@ -114,6 +116,7 @@ class HomeService {
     required double latitude,
     required double longitude,
     required String plusCode,
+    required String tabHeader,
     required String address_complete,
   }) {
     // Load the image
@@ -123,9 +126,21 @@ class HomeService {
       throw Exception('Failed to decode image');
     }
 
+    DateTime now = DateTime.now();
+
+    // Determine AM or PM
+    String period = now.hour >= 12 ? 'PM' : 'AM';
+
+    // Convert to 12-hour format
+    int hour = now.hour % 12 == 0 ? 12 : now.hour % 12;
+
+    // Format the time with AM or PM
+    var formattedTime =
+        "${hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')} $period";
+
     // Add watermark
     final watermarkText =
-        'Latitude: $latitude\nLongitude: $longitude\nPlus Code: $plusCode\nComplete Address: $address_complete\nNote: $note';
+        'Latitude: $latitude\nLongitude: $longitude\nPlus Code: $plusCode\nComplete Address: $address_complete\n$tabHeader: $formattedTime\nNote: $note';
     final watermarkColor = img.ColorRgb8(0, 0, 0);
 
     final watermark = img.drawString(

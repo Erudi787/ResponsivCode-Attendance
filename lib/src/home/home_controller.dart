@@ -35,6 +35,7 @@ class HomeController extends GetxController {
     required double latitude,
     required double longitude,
     required String plusCode,
+    required String tabHeader,
     required String address_complete,
   }) async {
     final image = await _homeService.captureImage(
@@ -42,6 +43,7 @@ class HomeController extends GetxController {
         latitude: latitude,
         longitude: longitude,
         plusCode: plusCode,
+        tabHeader: tabHeader,
         address_complete: address_complete);
     update(); // Notify GetX listeners
     return image;
@@ -63,6 +65,7 @@ class HomeController extends GetxController {
     required double latitude,
     required double longitude,
     required String plusCode,
+    required String tabHeader,
     required String address_complete,
   }) async {
     isLoading.value = true;
@@ -74,6 +77,7 @@ class HomeController extends GetxController {
       latitude: latitude,
       longitude: longitude,
       plusCode: plusCode,
+      tabHeader: tabHeader,
       address_complete: address_complete,
     );
 
