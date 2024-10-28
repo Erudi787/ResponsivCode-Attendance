@@ -12,9 +12,11 @@ class DtrLogsController extends GetxController {
       {required String employeeId,
       required String dateFrom,
       required String dateTo}) async {
-    var result = await _dtrLogsService.getTimeLogs(
+    var timeLogsResult = await _dtrLogsService.getTimeLogs(
         employeeId: employeeId, dateFrom: dateFrom, dateTo: dateTo);
 
-    return {"timelogs": result};
+    var otLogsResult = await _dtrLogsService.getOtLogs(employeeId: employeeId, dateFrom: dateFrom, dateTo: dateTo);
+
+    return {"timelogs": timeLogsResult, "ot_logs": otLogsResult};
   }
 }

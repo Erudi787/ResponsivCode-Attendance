@@ -87,7 +87,7 @@ class MyApp extends StatelessWidget {
             ),
           ],
 
-          initialRoute: DtrLogsView.routeName,
+          initialRoute: SplashView.routeName,
         );
       },
     );

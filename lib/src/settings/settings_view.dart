@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:rts_locator/src/dtr_logs/view/dtr_logs_view.dart';
 import 'package:rts_locator/src/home/home_view.dart';
 
 import 'settings_controller.dart';
@@ -41,28 +42,65 @@ class SettingsView extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: DropdownButton<ThemeMode>(
-                  // Read the selected themeMode from the controller
-                  value: controller.themeMode,
-                  // Call the updateThemeMode method any time the user selects a theme.
-                  onChanged: controller.updateThemeMode,
-                  items: const [
-                    DropdownMenuItem(
-                      value: ThemeMode.system,
-                      child: Text('System Theme'),
+              Column(
+                children: [
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: DropdownButton<ThemeMode>(
+                      // Read the selected themeMode from the controller
+                      value: controller.themeMode,
+                      // Call the updateThemeMode method any time the user selects a theme.
+                      onChanged: controller.updateThemeMode,
+                      items: const [
+                        DropdownMenuItem(
+                          value: ThemeMode.system,
+                          child: Text('System Theme'),
+                        ),
+                        DropdownMenuItem(
+                          value: ThemeMode.light,
+                          child: Text('Light Theme'),
+                        ),
+                        DropdownMenuItem(
+                          value: ThemeMode.dark,
+                          child: Text('Dark Theme'),
+                        )
+                      ],
                     ),
-                    DropdownMenuItem(
-                      value: ThemeMode.light,
-                      child: Text('Light Theme'),
+                  ),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      "General",
+                      textAlign: TextAlign.left,
+                      style:
+                          TextStyle(fontWeight: FontWeight.w500, fontSize: 24),
                     ),
-                    DropdownMenuItem(
-                      value: ThemeMode.dark,
-                      child: Text('Dark Theme'),
-                    )
-                  ],
-                ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 20),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: ListTile(
+                        style: ListTileStyle.list,
+                        leading: const Icon(
+                          Icons.list_alt_rounded,
+                          color: Colors.blue,
+                        ),
+                        title: const Text(
+                          "View DTR Logs",
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 18),
+                        ),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            side: const BorderSide(width: 1)),
+                        onTap: () {
+                          Get.toNamed(DtrLogsView.routeName);
+                        },
+                      ),
+                    ),
+                  )
+                ],
               ),
               GestureDetector(
                 onTap: () async {

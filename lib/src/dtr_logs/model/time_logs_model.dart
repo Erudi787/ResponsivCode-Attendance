@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:intl/intl.dart';
+
 TimeLogsModel timeLogsModelFromJson(String str) =>
     TimeLogsModel.fromJson(json.decode(str));
 
@@ -33,8 +35,20 @@ class TimeLogsModel {
     return '${adjustedHour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
   }
 
+  static String formatDate(String? date) {
+    if (date == null || date.isEmpty) return '';
+
+    try {
+      final DateTime parsedDate = DateTime.parse(date);
+      final DateFormat formatter = DateFormat('MMM dd, yyyy');
+      return formatter.format(parsedDate); // e.g., "April 05, 2023"
+    } catch (e) {
+      return date; // Return the original string if parsing fails
+    }
+  }
+
   factory TimeLogsModel.fromJson(Map<String, dynamic> json) => TimeLogsModel(
-        date: json['date'],
+        date: formatDate(json['date']),
         timeIn: formatTime(json['time_in']),
         breakOut: formatTime(json['break_out']),
         breakIn: formatTime(json['break_in']),
