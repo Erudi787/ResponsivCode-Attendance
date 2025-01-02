@@ -5,6 +5,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:rts_locator/src/location/location_controller.dart';
 import 'package:rts_locator/src/location/location_service.dart';
+import 'package:workmanager/workmanager.dart';
 import 'home_service.dart';
 
 class HomeController extends GetxController {
@@ -72,7 +73,7 @@ class HomeController extends GetxController {
     Get.showSnackbar(const GetSnackBar(
         message: 'Starting process...', duration: Duration(seconds: 2)));
     //Capture the image
-    final modifiedImage = await captureImage(
+    final modifiedImage = await _homeService.captureImage(
       note: note,
       latitude: latitude,
       longitude: longitude,
@@ -94,24 +95,7 @@ class HomeController extends GetxController {
       fontSize: 16.0,
     );
 
-    // Upload to Cloudinary
-    final uploadedUrl = await uploadToCloud(imageFile: modifiedImage);
-    if (uploadedUrl.isEmpty) {
-      throw 'Image upload failed';
-    }
-    Fluttertoast.showToast(
-      msg: 'Image uploaded to cloud!',
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.CENTER,
-      timeInSecForIosWeb: 5,
-      backgroundColor: Colors.black,
-      textColor: Colors.white,
-      fontSize: 16.0,
-    );
-
-    // Upload the image URL to your database
-    await uploadToDatabase(data: {
-      "photo_url": uploadedUrl,
+    final dataInDatabase = await _homeService.uploadToDatabase(data: {
       'note': note,
       'attendance_type': attendanceType,
       'long_lat': '$latitude, $longitude',
@@ -119,7 +103,41 @@ class HomeController extends GetxController {
       'address_complete': address_complete,
     });
 
-    // isLoading.value = false;
+    await Workmanager().registerOneOffTask(
+      'uniqueName',
+      'uploadTask',
+      constraints: Constraints(
+        // connected or metered mark the task as requiring internet
+        networkType: NetworkType.connected,
+      ),
+      inputData: {
+        'id': dataInDatabase,
+        'filePath': modifiedImage.path,
+      },
+    );
+
+    print("Done");
+
+    // // Upload to Cloudinary
+    // final uploadedUrl =
+    //     await _homeService.uploadToCloud(imageFile: modifiedImage);
+    // if (uploadedUrl.isEmpty) {
+    //   throw 'Image upload failed';
+    // }
+    // Fluttertoast.showToast(
+    //   msg: 'Image uploaded to cloud!',
+    //   toastLength: Toast.LENGTH_SHORT,
+    //   gravity: ToastGravity.CENTER,
+    //   timeInSecForIosWeb: 5,
+    //   backgroundColor: Colors.black,
+    //   textColor: Colors.white,
+    //   fontSize: 16.0,
+    // );
+
+    // await _homeService.updateToDatabase(
+    //     data: {'id': dataInDatabase, 'photo_url': uploadedUrl});
+
+    isLoading.value = false;
   }
 
   // Method to switch between cameras

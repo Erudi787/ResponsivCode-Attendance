@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:camera/camera.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geolocator/geolocator.dart';
@@ -51,12 +52,19 @@ class _HomeViewState extends State<HomeView>
   });
   ValueNotifier<String> tabHeaderKey = ValueNotifier<String>('TIME IN');
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
     update(tabHeader.value.length);
+    device();
+  }
+
+  void device() async {
+    AndroidDeviceInfo androidDeviceInfo = await deviceInfoPlugin.androidInfo;
+    print('Hello ${androidDeviceInfo.model}');
   }
 
   void update(int length) {

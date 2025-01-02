@@ -179,7 +179,7 @@ class HomeService {
     return uploadedUrl;
   }
 
-  Future<void> uploadToDatabase({required Map<String, dynamic> data}) async {
+  Future<String> uploadToDatabase({required Map<String, dynamic> data}) async {
     data['id'] = box.read('user_id');
     data['picture_type'] = _selectedCameraIndex == 0
         ? "back"
@@ -189,6 +189,43 @@ class HomeService {
 
     final response =
         await dio.post('${configController.apiUrl.value}/attendance',
+            data: jsonEncode(data),
+            options: Options(
+              validateStatus: (status) => true,
+              headers: {'Content-Type': 'application/json'},
+            ));
+
+    var result = response.data['messsage'];
+    print(result);
+
+    if (response.statusCode == 200) {
+      Fluttertoast.showToast(
+        msg: response.data['messsage'],
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.CENTER,
+        timeInSecForIosWeb: 5,
+        backgroundColor: Colors.black,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+      return response.data['id'].toString();
+    } else {
+      Fluttertoast.showToast(
+        msg: response.data['messsage'],
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.CENTER,
+        timeInSecForIosWeb: 5,
+        backgroundColor: Colors.black,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+      return response.data['id'].toString();
+    }
+  }
+
+  Future<void> updateToDatabase({required Map<String, dynamic> data}) async {
+    final response =
+        await dio.post('${configController.apiUrl.value}/update/attendance',
             data: jsonEncode(data),
             options: Options(
               validateStatus: (status) => true,
