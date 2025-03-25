@@ -33,7 +33,7 @@ class SplashView extends StatelessWidget {
             Padding(
               padding: EdgeInsets.only(top: height * 0.02895),
               child: Text(
-                'RTS LOCATOR',
+                'RTS ATTENDANCE',
                 style: GoogleFonts.zenDots(
                   fontSize: height * 0.024125,
                   fontWeight: FontWeight.w400,

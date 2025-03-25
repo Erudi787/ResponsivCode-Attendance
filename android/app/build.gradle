@@ -52,7 +52,7 @@ android {
             signingConfig = signingConfigs.debug
             applicationVariants.all { variant ->
                 variant.outputs.each { output ->
-                    output.outputFileName = "RTS LOCATOR.apk"
+                    output.outputFileName = "RTS ATTENDACE.apk"
                 }
             }
         }

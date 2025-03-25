@@ -123,7 +123,7 @@ class SettingsView extends StatelessWidget {
                     child: Text(
                       "LOGOUT",
                       style: GoogleFonts.poppins(
-                          fontSize: height * 0.0193,
+                          fontSize: height * 0.018,
                           fontWeight: FontWeight.w500,
                           letterSpacing: 0.1,
                           color: Colors.white),
