@@ -31,12 +31,12 @@ dependencies:
   fluttertoast: ^8.2.8
   percent_indicator: ^4.2.3
   get_storage: ^2.1.1
-  image_gallery_saver_plus: ^3.0.5
+  image_gallery_saver_plus: ^4.0.1
   calendar_date_picker2: ^1.1.7
   flutter_expandable_table: ^2.1.0
   intl: 0.20.2
   device_info_plus: ^11.1.1
-  workmanager: ^0.5.2
+  workmanager: ^0.8.0
 
 dev_dependencies:
   flutter_test:
