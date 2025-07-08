@@ -1,9 +1,14 @@
+// lib/src/app.dart
+
 import 'package:flutter/material.dart';
-//import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:rts_locator/src/localization/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'package:rts_locator/src/dtr_logs/view/dtr_logs_view.dart';
+// --- Add these imports for the new views ---
+import 'package:rts_locator/src/facial_recognition/face_recognition_view.dart';
+import 'package:rts_locator/src/facial_recognition/live_registration_view.dart';
+// --- End of new imports ---
 import 'package:rts_locator/src/home/home_view.dart';
 import 'package:rts_locator/src/login/login_view.dart';
 import 'package:rts_locator/src/splash/splash_view.dart';
@@ -11,7 +16,6 @@ import 'package:rts_locator/src/splash/splash_view.dart';
 import 'settings/settings_controller.dart';
 import 'settings/settings_view.dart';
 
-/// The Widget that configures your application.
 class MyApp extends StatelessWidget {
   const MyApp({
     super.key,
@@ -22,24 +26,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Glue the SettingsController to the MaterialApp.
-
-    // The ListenableBuilder Widget listens to the SettingsController for changes.
-    // Whenever the user updates their settings, the MaterialApp is rebuilt.
     return ListenableBuilder(
       listenable: settingsController,
       builder: (BuildContext context, Widget? child) {
         return GetMaterialApp(
           debugShowCheckedModeBanner: false,
-          // Providing a restorationScopeId allows the Navigator built by the
-          // MaterialApp to restore the navigation stack when a user leaves and
-          // returns to the app after it has been killed while running in the
-          // background.
-          // restorationScopeId: 'app',
-
-          // Provide the generated AppLocalizations to the MaterialApp. This
-          // allows descendant Widgets to display the correct translations
-          // depending on the user's locale.
           localizationsDelegates: const [
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
@@ -49,24 +40,11 @@ class MyApp extends StatelessWidget {
           supportedLocales: const [
             Locale('en', ''), // English, no country code
           ],
-
-          // Use AppLocalizations to configure the correct application title
-          // depending on the user's locale.
-          //
-          // The appTitle is defined in .arb files found in the localization
-          // directory.
           onGenerateTitle: (BuildContext context) =>
               AppLocalizations.of(context)!.appTitle,
-
-          // Define a light and dark color theme. Then, read the user's
-          // preferred ThemeMode (light, dark, or system default) from the
-          // SettingsController to display the correct theme.
           theme: ThemeData(),
           darkTheme: ThemeData.dark(),
           themeMode: settingsController.themeMode,
-
-          // Define a function to handle named routes in order to support
-          // Flutter web url navigation and deep linking.
           getPages: [
             GetPage(
               name: SplashView.routeName,
@@ -74,7 +52,7 @@ class MyApp extends StatelessWidget {
             ),
             GetPage(
               name: LoginView.routeName,
-              page: () => LoginView(),
+              page: () => const LoginView(),
             ),
             GetPage(
               name: HomeView.routeName,
@@ -86,8 +64,18 @@ class MyApp extends StatelessWidget {
               name: SettingsView.routeName,
               page: () => SettingsView(controller: settingsController),
             ),
+            // --- Add the new routes here ---
+            GetPage(
+              name: LiveRegistrationView.routeName,
+              // Use Get.arguments to pass the person's name to the view
+              page: () => LiveRegistrationView(personName: Get.arguments as String),
+            ),
+            GetPage(
+              name: FaceRecognitionView.routeName,
+              page: () => const FaceRecognitionView(),
+            ),
+            // -----------------------------
           ],
-
           initialRoute: SplashView.routeName,
         );
       },

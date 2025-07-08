@@ -3,6 +3,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
+import 'package:rts_locator/src/facial_recognition/face_recognition_view.dart';
 import 'package:rts_locator/src/location/location_controller.dart';
 import 'package:rts_locator/src/location/location_service.dart';
 import 'package:workmanager/workmanager.dart';
@@ -60,7 +61,9 @@ class HomeController extends GetxController {
     await _homeService.uploadToDatabase(data: data);
   }
 
-  Future<void> captureAndUpload({
+  
+
+ Future<void> captureAndUpload({
     required String note,
     required String attendanceType,
     required double latitude,
@@ -72,7 +75,19 @@ class HomeController extends GetxController {
     isLoading.value = true;
     Get.showSnackbar(const GetSnackBar(
         message: 'Starting process...', duration: Duration(seconds: 2)));
-    //Capture the image
+
+    // --- Trigger Face Verification ---
+  final bool? isVerified = await Get.toNamed(FaceRecognitionView.routeName);
+
+    // If verification fails or the user cancels, stop the process
+    if (isVerified != true) {
+      isLoading.value = false;
+      Get.snackbar("Cancelled", "Face verification failed or was cancelled.");
+      return;
+    }
+    // ---------------------------------
+
+    // --- If verification is successful, continue with original logic ---
     final modifiedImage = await _homeService.captureImage(
       note: note,
       latitude: latitude,
@@ -83,17 +98,10 @@ class HomeController extends GetxController {
     );
 
     if (modifiedImage == null) {
+      isLoading.value = false;
       throw 'Image capture failed';
     }
-    Fluttertoast.showToast(
-      msg: 'Image captured!',
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.CENTER,
-      timeInSecForIosWeb: 5,
-      backgroundColor: Colors.black,
-      textColor: Colors.white,
-      fontSize: 16.0,
-    );
+    Fluttertoast.showToast(msg: 'Image captured!');
 
     final dataInDatabase = await _homeService.uploadToDatabase(data: {
       'note': note,
@@ -104,12 +112,9 @@ class HomeController extends GetxController {
     });
 
     await Workmanager().registerOneOffTask(
-      'uniqueName',
+      'uniqueName_${DateTime.now().millisecondsSinceEpoch}', // Ensure unique task name
       'uploadTask',
-      constraints: Constraints(
-        // connected or metered mark the task as requiring internet
-        networkType: NetworkType.connected,
-      ),
+      constraints: Constraints(networkType: NetworkType.connected),
       inputData: {
         'id': dataInDatabase,
         'filePath': modifiedImage.path,
@@ -117,26 +122,6 @@ class HomeController extends GetxController {
     );
 
     print("Done");
-
-    // // Upload to Cloudinary
-    // final uploadedUrl =
-    //     await _homeService.uploadToCloud(imageFile: modifiedImage);
-    // if (uploadedUrl.isEmpty) {
-    //   throw 'Image upload failed';
-    // }
-    // Fluttertoast.showToast(
-    //   msg: 'Image uploaded to cloud!',
-    //   toastLength: Toast.LENGTH_SHORT,
-    //   gravity: ToastGravity.CENTER,
-    //   timeInSecForIosWeb: 5,
-    //   backgroundColor: Colors.black,
-    //   textColor: Colors.white,
-    //   fontSize: 16.0,
-    // );
-
-    // await _homeService.updateToDatabase(
-    //     data: {'id': dataInDatabase, 'photo_url': uploadedUrl});
-
     isLoading.value = false;
   }
 
