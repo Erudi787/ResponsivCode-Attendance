@@ -7,7 +7,7 @@ import 'package:rts_locator/src/dtr_logs/model/time_logs_model.dart';
 class DtrLogsService {
   final dio = Dio();
   final baseUrl =
-      'https://localhost:3000/hris/index.php/attendanceController';
+      'https://responsivcode-attendance-api.onrender.com/attendanceController';
 
   Future<List<TimeLogsModel>> getTimeLogs(
       {required String employeeId,
