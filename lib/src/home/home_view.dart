@@ -31,35 +31,55 @@ class _HomeViewState extends State<HomeView>
   final LocationController locationController =
       Get.put(LocationController(LocationService()));
   final TextEditingController noteController = TextEditingController();
-  int _selectedIndex = 1;
-  late ValueNotifier<String> attendanceType = ValueNotifier<String>("time_in");
   final box = GetStorage();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
+
   late TabController _tabController;
+  String attendanceType = "time_in";
+  String tabHeaderKey = 'TIME IN';
+
   double longitude = 0.0;
   double latitude = 0.0;
   String plusCode = '';
   String address_complete = '';
   String notes = '';
-  bool isResetNeeded = true;
-  ValueNotifier<bool> isOverTime = ValueNotifier<bool>(false);
-  ValueNotifier<Map<String, String>> tabHeader =
-      ValueNotifier<Map<String, String>>({
+  bool isOverTime = false;
+
+  // Define the tab headers
+  final Map<String, String> regularTabs = {
     'DOCUMENTARY': 'documentary',
     'TIME IN': 'time_in',
     'BREAK OUT': 'break_out',
     'BREAK IN': 'break_in',
     'TIME OUT': 'time_out'
-  });
-  ValueNotifier<String> tabHeaderKey = ValueNotifier<String>('TIME IN');
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
+  };
+
+  final Map<String, String> overtimeTabs = {
+    'DOCUMENTARY': 'documentary',
+    'OVERTIME IN': 'ot_in',
+    'OVERTIME OUT': 'ot_out'
+  };
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-    update(tabHeader.value.length);
+    // Initialize TabController with regular tabs
+    _tabController =
+        TabController(length: regularTabs.length, vsync: this, initialIndex: 1);
+    _tabController.addListener(_handleTabSelection);
     device();
+  }
+
+  void _handleTabSelection() {
+    // only update state if the index has changed
+    if (_tabController.indexIsChanging) {
+      setState(() {
+        final currentTabs = isOverTime ? overtimeTabs : regularTabs;
+        attendanceType = currentTabs.values.elementAt(_tabController.index);
+        tabHeaderKey = currentTabs.keys.elementAt(_tabController.index);
+      });
+    }
   }
 
   void device() async {
@@ -67,11 +87,24 @@ class _HomeViewState extends State<HomeView>
     print('Hello ${androidDeviceInfo.model}');
   }
 
-  void update(int length) {
-    _tabController = TabController(
-        length: length, vsync: this, initialIndex: _selectedIndex);
-    _tabController.addListener(() {
-      _selectedIndex = _tabController.index;
+  // A single function to switch between overtime and regular modes
+  void _toggleOvertime() {
+    setState(() {
+      isOverTime = !isOverTime;
+      // Remove the old listener to avoid errors
+      _tabController.removeListener(_handleTabSelection);
+
+      // Create a new TabController with the correct length and initial index
+      final newTabs = isOverTime ? overtimeTabs : regularTabs;
+      _tabController =
+          TabController(length: newTabs.length, vsync: this, initialIndex: 1);
+
+      // Set the default attendance type for the new mode
+      attendanceType = newTabs.values.elementAt(1);
+      tabHeaderKey = newTabs.keys.elementAt(1);
+
+      // Add the listener to the new controller
+      _tabController.addListener(_handleTabSelection);
     });
   }
 
@@ -104,17 +137,17 @@ class _HomeViewState extends State<HomeView>
       final address = await _getAddressFromLatLng(
         position.latitude,
         position.longitude,
-        'AIzaSyCK0P_803SLSiBa663Sw44-njG-ehwPTrg',
+        'AIzaSyCK0P_803SLSiBa663Sw44-njG-ehwPTrg', // Replace with your API key
       );
 
-      print("Hoy $address");
-
-      setState(() {
-        plusCode = address!['plus_code']!;
-        address_complete = address['address']!;
-        longitude = position.longitude;
-        latitude = position.latitude;
-      });
+      if (mounted) {
+        setState(() {
+          plusCode = address?['plus_code'] ?? 'Failed to fetch plus_code';
+          address_complete = address?['address'] ?? 'Failed to fetch address';
+          longitude = position.longitude;
+          latitude = position.latitude;
+        });
+      }
     } catch (e) {
       print('Error fetching address: $e');
     }
@@ -132,14 +165,8 @@ class _HomeViewState extends State<HomeView>
       if (data['status'] == 'OK' && data['results'][0] != null) {
         return {
           "plus_code":
-              data['plus_code']['compound_code'] ?? "Failed to fetch plus_code",
-          "address": data['results'][0]['formatted_address'] ??
-              "Failed to fetch address"
-        };
-      } else {
-        return {
-          "plus_code": 'Failed to fetch plus_code',
-          "address": "Failed to fetch address"
+              data['results'][0]['plus_code']?['compound_code'] ?? "N/A",
+          "address": data['results'][0]['formatted_address'] ?? "N/A"
         };
       }
     }
@@ -148,11 +175,9 @@ class _HomeViewState extends State<HomeView>
 
   @override
   void dispose() {
-    // TODO: implement dispose
+    _tabController.removeListener(_handleTabSelection);
     _tabController.dispose();
-    homeController.cameraController!.dispose();
-    isOverTime.dispose();
-    tabHeader.dispose();
+    homeController.dispose();
     super.dispose();
   }
 
@@ -160,578 +185,355 @@ class _HomeViewState extends State<HomeView>
   Widget build(BuildContext context) {
     var height = MediaQuery.of(context).size.height;
     var width = MediaQuery.of(context).size.width;
-    return ValueListenableBuilder(
-        valueListenable: attendanceType,
-        builder: (context, attendance, _) {
-          return Scaffold(
-            resizeToAvoidBottomInset: false,
-            appBar: AppBar(
-              elevation: 0,
-              scrolledUnderElevation: 0,
-              flexibleSpace: Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: Stack(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 6),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: SizedBox(
-                          width: 150,
-                          child: Center(
-                            child: Text(
-                              '${box.read('fullname')}',
-                              style: GoogleFonts.poppins(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Align(
-                      alignment: Alignment.center,
+
+    final currentTabs = isOverTime ? overtimeTabs : regularTabs;
+
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      appBar: AppBar(
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        flexibleSpace: Padding(
+          padding: const EdgeInsets.only(top: 16),
+          child: Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 6),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: SizedBox(
+                    width: 150,
+                    child: Center(
                       child: Text(
-                        "RTS HR",
+                        '${box.read('fullname')}',
                         style: GoogleFonts.poppins(
                           fontWeight: FontWeight.bold,
-                          fontSize: 26,
+                          fontSize: 20,
                         ),
                       ),
                     ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.settings,
-                          size: 26,
-                        ),
-                        onPressed: () {
-                          Get.offAllNamed(SettingsView.routeName);
-                        },
-                      ),
-                    )
-                  ],
+                  ),
                 ),
               ),
-            ),
-            body: GetBuilder<HomeController>(
-              init: homeController,
-              builder: (_) {
-                if (homeController.cameraController == null ||
-                    !homeController.cameraController!.value.isInitialized) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+              Align(
+                alignment: Alignment.center,
+                child: Text(
+                  "RTS HR",
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 26,
+                  ),
+                ),
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.settings,
+                    size: 26,
+                  ),
+                  onPressed: () {
+                    Get.offAllNamed(SettingsView.routeName);
+                  },
+                ),
+              )
+            ],
+          ),
+        ),
+      ),
+      body: GetBuilder<HomeController>(
+        init: homeController,
+        builder: (_) {
+          if (homeController.cameraController == null ||
+              !homeController.cameraController!.value.isInitialized) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-                return SizedBox(
-                  height: MediaQuery.of(context).size.height,
-                  child: Column(
+          return SizedBox(
+            height: MediaQuery.of(context).size.height,
+            child: Column(
+              children: [
+                if (attendanceType == "documentary")
+                  Form(
+                    key: _formKey,
+                    child: TextFormField(
+                      minLines: 1,
+                      maxLines: null,
+                      controller: noteController,
+                      style: GoogleFonts.poppins(
+                        color: Colors.black,
+                        fontWeight: FontWeight.w400,
+                        fontSize: 20,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: "Add your note here...",
+                        labelStyle: GoogleFonts.inter(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
+                        floatingLabelBehavior: FloatingLabelBehavior.never,
+                        filled: true,
+                        fillColor: Colors.grey.withOpacity(0.5),
+                        border: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.black),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                            vertical: 10, horizontal: 16),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter some text';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                Flexible(
+                  child: Stack(
+                    alignment: Alignment.bottomCenter,
                     children: [
-                      if (attendance == "documentary")
-                        Form(
-                          key: _formKey,
-                          child: TextFormField(
-                            minLines: 1,
-                            maxLines: null,
-                            controller: noteController,
-                            style: GoogleFonts.poppins(
-                              color: Colors.black,
-                              fontWeight: FontWeight.w400,
-                              fontSize: 20,
+                      SizedBox(
+                        height: height,
+                        width: width,
+                        child: homeController.selectedCameraIndex == 0
+                            ? CameraPreview(homeController.cameraController!)
+                            : Transform(
+                                alignment: Alignment.center,
+                                transform: Matrix4.identity()..rotateY(math.pi),
+                                child: CameraPreview(
+                                    homeController.cameraController!)),
+                      ),
+                      if (_tabController.index == 0)
+                        Positioned(
+                          top: height * 0.0193,
+                          right: width * 0.04,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              border:
+                                  Border.all(width: 2.0, color: Colors.white),
+                              borderRadius: BorderRadius.circular(50),
                             ),
-                            decoration: InputDecoration(
-                              labelText: "Add your note here...",
-                              labelStyle: GoogleFonts.inter(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black,
-                              ),
-                              floatingLabelBehavior:
-                                  FloatingLabelBehavior.never,
-                              filled: true,
-                              fillColor: Colors.grey.withOpacity(0.5),
-                              border: OutlineInputBorder(
-                                // borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(color: Colors.black),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                  vertical: 10, horizontal: 16),
+                            child: IconButton(
+                              color: Colors.white,
+                              icon: const Icon(Icons.cameraswitch_outlined,
+                                  size: 24),
+                              onPressed: () async {
+                                await homeController.switchCamera();
+                              },
                             ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter some text';
-                              }
-                              return null;
-                            },
                           ),
                         ),
-                      Flexible(
-                        child: Stack(
-                          alignment: Alignment.bottomCenter,
-                          children: [
-                            SizedBox(
-                              height: height,
-                              width: width,
-                              child: homeController.selectedCameraIndex == 0
-                                  ? CameraPreview(
-                                      homeController.cameraController!)
-                                  : Transform(
-                                      alignment: Alignment.center,
-                                      transform: Matrix4.identity()
-                                        ..rotateY(math.pi),
-                                      child: CameraPreview(
-                                          homeController.cameraController!)),
-                            ),
-                            if (_tabController.index == 0)
-                              Positioned(
-                                top: height * 0.0193,
-                                right: width * 0.04,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    border: Border.all(width: 2.0),
-                                    borderRadius: BorderRadius.circular(50),
-                                  ),
-                                  child: IconButton(
-                                    icon: const Icon(
-                                        Icons.cameraswitch_outlined,
-                                        size: 24),
-                                    onPressed: () async {
-                                      await homeController.switchCamera();
-                                    },
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Container(
+                            height: 180,
+                            width: width,
+                            color: Colors.transparent,
+                            child: Stack(
+                              children: <Widget>[
+                                Align(
+                                  alignment: Alignment.topCenter,
+                                  child: SizedBox(
+                                    height: 60,
+                                    child: TabBar(
+                                      isScrollable: true,
+                                      tabAlignment: TabAlignment.center,
+                                      dividerColor: Colors.transparent,
+                                      indicatorColor: Colors.red,
+                                      unselectedLabelColor: Colors.orange,
+                                      labelColor: Colors.white,
+                                      controller: _tabController,
+                                      tabs: currentTabs.keys
+                                          .map((String key) => Tab(
+                                                child: Text(
+                                                  key,
+                                                  style: GoogleFonts.poppins(
+                                                      fontSize: 15,
+                                                      fontWeight:
+                                                          FontWeight.w500),
+                                                ),
+                                              ))
+                                          .toList(),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Container(
-                                  height: 180,
-                                  width: width,
-                                  color: Colors.transparent,
-                                  child: Stack(
-                                    children: <Widget>[
-                                      ValueListenableBuilder<
-                                              Map<String, String>>(
-                                          valueListenable: tabHeader,
-                                          builder:
-                                              (context, tabHeaderValue, _) {
-                                            print(
-                                                "Hoy TabHeader: ${tabHeaderKey.value}");
-                                            print(
-                                                "Hoy AtttendanceType: ${attendanceType.value}");
-                                            return Align(
-                                              alignment: Alignment.topCenter,
-                                              child: SizedBox(
-                                                height: 60,
-                                                child: TabBar(
-                                                  isScrollable: true,
-                                                  tabAlignment:
-                                                      TabAlignment.center,
-                                                  dividerColor:
-                                                      Colors.transparent,
-                                                  indicatorColor: Colors.red,
-                                                  unselectedLabelColor:
-                                                      Colors.orange,
-                                                  labelColor: Colors.white,
-                                                  controller: _tabController,
-                                                  onTap: (value) async {
-                                                    print("Hoy value: $value");
-
-                                                    await homeController
-                                                        .autoSwitchCamera(
-                                                            selectedIndex:
-                                                                value);
-                                                    switch (value) {
-                                                      case 0:
-                                                        attendanceType.value =
-                                                            tabHeaderValue
-                                                                .values
-                                                                .elementAt(0);
-                                                        tabHeaderKey.value =
-                                                            tabHeaderValue.keys
-                                                                .elementAt(0);
-                                                        break;
-                                                      case 1:
-                                                        attendanceType.value =
-                                                            tabHeaderValue
-                                                                .values
-                                                                .elementAt(1);
-                                                        tabHeaderKey.value =
-                                                            tabHeaderValue.keys
-                                                                .elementAt(1);
-                                                        break;
-                                                      case 2:
-                                                        attendanceType.value =
-                                                            tabHeaderValue
-                                                                .values
-                                                                .elementAt(2);
-                                                        tabHeaderKey.value =
-                                                            tabHeaderValue.keys
-                                                                .elementAt(2);
-                                                        break;
-                                                      case 3:
-                                                        attendanceType.value =
-                                                            tabHeaderValue
-                                                                .values
-                                                                .elementAt(3);
-                                                        tabHeaderKey.value =
-                                                            tabHeaderValue.keys
-                                                                .elementAt(3);
-                                                        break;
-                                                      case 4:
-                                                        attendanceType.value =
-                                                            tabHeaderValue
-                                                                .values
-                                                                .elementAt(4);
-                                                        tabHeaderKey.value =
-                                                            tabHeaderValue.keys
-                                                                .elementAt(4);
-                                                        break;
-                                                    }
-                                                  },
-                                                  tabs: [
-                                                    Tab(
-                                                      child: Text(
-                                                        tabHeaderValue.keys
-                                                            .elementAt(0),
-                                                        style:
-                                                            GoogleFonts.poppins(
-                                                                fontSize: 15,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w500),
-                                                      ),
-                                                    ),
-                                                    Tab(
-                                                      child: Text(
-                                                        tabHeaderValue.keys
-                                                            .elementAt(1),
-                                                        style:
-                                                            GoogleFonts.poppins(
-                                                                fontSize: 15,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w500),
-                                                      ),
-                                                    ),
-                                                    Tab(
-                                                      child: Text(
-                                                        tabHeaderValue.keys
-                                                            .elementAt(2),
-                                                        style:
-                                                            GoogleFonts.poppins(
-                                                                fontSize: 15,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w500),
-                                                      ),
-                                                    ),
-                                                    if (tabHeaderValue.length !=
-                                                        3)
-                                                      Tab(
-                                                        child: Text(
-                                                          tabHeaderValue.keys
-                                                              .elementAt(3),
-                                                          style: GoogleFonts
-                                                              .poppins(
-                                                                  fontSize: 15,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500),
-                                                        ),
-                                                      ),
-                                                    if (tabHeaderValue.length !=
-                                                        3)
-                                                      Tab(
-                                                        child: Text(
-                                                          tabHeaderValue.keys
-                                                              .elementAt(4),
-                                                          style: GoogleFonts
-                                                              .poppins(
-                                                                  fontSize: 15,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500),
-                                                        ),
-                                                      )
-                                                  ],
+                                Padding(
+                                  padding: EdgeInsets.only(top: height * 0.05),
+                                  child: Align(
+                                    alignment: Alignment.center,
+                                    child: Obx(() {
+                                      return homeController.isLoading.value
+                                          ? Stack(
+                                              alignment: Alignment.center,
+                                              children: [
+                                                Container(
+                                                  height: 80,
+                                                  width: 80,
+                                                  decoration: BoxDecoration(
+                                                    border: Border.all(
+                                                        color: Colors.white),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            100),
+                                                  ),
                                                 ),
+                                                const Icon(
+                                                  Icons.fiber_manual_record,
+                                                  color: Colors.orange,
+                                                  size: 95,
+                                                ),
+                                              ],
+                                            )
+                                          : GestureDetector(
+                                              onTap: () async {
+                                                await _determinePosition();
+
+                                                if (plusCode.isEmpty ||
+                                                    address_complete.isEmpty) {
+                                                  Fluttertoast.showToast(
+                                                      msg:
+                                                          "Could not get location. Please try again.");
+                                                  return;
+                                                }
+
+                                                if (attendanceType ==
+                                                    'documentary') {
+                                                  if (_formKey.currentState!
+                                                      .validate()) {
+                                                    await homeController
+                                                        .captureAndUpload(
+                                                      note: noteController.text
+                                                          .trim(),
+                                                      attendanceType:
+                                                          attendanceType,
+                                                      latitude: latitude,
+                                                      longitude: longitude,
+                                                      plusCode: plusCode,
+                                                      tabHeader: tabHeaderKey,
+                                                      address_complete:
+                                                          address_complete,
+                                                    );
+                                                    noteController.clear();
+                                                  }
+                                                } else {
+                                                  await homeController
+                                                      .captureAndUpload(
+                                                    note: noteController.text
+                                                        .trim(),
+                                                    attendanceType:
+                                                        attendanceType,
+                                                    latitude: latitude,
+                                                    longitude: longitude,
+                                                    plusCode: plusCode,
+                                                    tabHeader: tabHeaderKey,
+                                                    address_complete:
+                                                        address_complete,
+                                                  );
+                                                  noteController.clear();
+                                                }
+                                              },
+                                              child: Stack(
+                                                alignment: Alignment.center,
+                                                children: [
+                                                  Container(
+                                                    height: 80,
+                                                    width: 80,
+                                                    decoration: BoxDecoration(
+                                                      border: Border.all(
+                                                          color: Colors.white),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              100),
+                                                    ),
+                                                  ),
+                                                  const Icon(
+                                                    Icons.fiber_manual_record,
+                                                    color: Colors.white,
+                                                    size: 95,
+                                                  ),
+                                                ],
                                               ),
                                             );
-                                          }),
-                                      Padding(
-                                        padding:
-                                            EdgeInsets.only(top: height * 0.05),
-                                        child: Align(
-                                          alignment: Alignment.center,
-                                          child: Obx(() {
-                                            return homeController
-                                                    .isLoading.value
-                                                ? Stack(
-                                                    alignment: Alignment.center,
-                                                    children: [
-                                                      Container(
-                                                        height: 80,
-                                                        width: 80,
-                                                        decoration:
-                                                            BoxDecoration(
-                                                          border: Border.all(
-                                                              color:
-                                                                  Colors.white),
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(
-                                                                      100),
-                                                        ),
-                                                      ),
-                                                      const Icon(
-                                                        Icons
-                                                            .fiber_manual_record,
+                                    }),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: EdgeInsets.only(
+                                      top: height * 0.05, right: width * 0.03),
+                                  child: Align(
+                                    alignment: Alignment.centerRight,
+                                    child: GestureDetector(
+                                      onTap: _toggleOvertime,
+                                      child: Container(
+                                        height: 80,
+                                        width: 100,
+                                        decoration: BoxDecoration(
+                                          border:
+                                              Border.all(color: Colors.white),
+                                          borderRadius:
+                                              BorderRadius.circular(15),
+                                        ),
+                                        child: isOverTime
+                                            ? Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceEvenly,
+                                                children: [
+                                                  Image.asset(
+                                                    'assets/images/clock.png',
+                                                    width: 40,
+                                                    height: 40,
+                                                  ),
+                                                  Text(
+                                                    "NO OVERTIME",
+                                                    style: GoogleFonts.poppins(
+                                                        fontSize: 13,
                                                         color: Colors.orange,
-                                                        size: 95,
-                                                      ),
-                                                    ],
-                                                  )
-                                                : GestureDetector(
-                                                    onTap: () async {
-                                                      _determinePosition()
-                                                          .then((_) async {
-                                                        if (attendance ==
-                                                            'documentary') {
-                                                          if (_formKey
-                                                              .currentState!
-                                                              .validate()) {
-                                                            await homeController
-                                                                .captureAndUpload(
-                                                              note:
-                                                                  noteController
-                                                                      .text
-                                                                      .trim(),
-                                                              attendanceType:
-                                                                  attendance,
-                                                              latitude:
-                                                                  latitude,
-                                                              longitude:
-                                                                  longitude,
-                                                              plusCode:
-                                                                  plusCode,
-                                                              tabHeader:
-                                                                  tabHeaderKey
-                                                                      .value,
-                                                              address_complete:
-                                                                  address_complete,
-                                                            )
-                                                                .then((image) {
-                                                              noteController
-                                                                  .clear();
-                                                              homeController
-                                                                      .isLoading
-                                                                      .value =
-                                                                  false;
-                                                            });
-                                                          }
-                                                        } else {
-                                                          await homeController
-                                                              .captureAndUpload(
-                                                            note: noteController
-                                                                .text
-                                                                .trim(),
-                                                            attendanceType:
-                                                                attendance,
-                                                            latitude: latitude,
-                                                            longitude:
-                                                                longitude,
-                                                            plusCode: plusCode,
-                                                            tabHeader:
-                                                                tabHeaderKey
-                                                                    .value,
-                                                            address_complete:
-                                                                address_complete,
-                                                          )
-                                                              .then((image) {
-                                                            noteController
-                                                                .clear();
-                                                            homeController
-                                                                .isLoading
-                                                                .value = false;
-                                                          });
-                                                        }
-                                                      });
-                                                    },
-                                                    child: Stack(
-                                                      alignment:
-                                                          Alignment.center,
-                                                      children: [
-                                                        Container(
-                                                          height: 80,
-                                                          width: 80,
-                                                          decoration:
-                                                              BoxDecoration(
-                                                            border: Border.all(
-                                                                color: Colors
-                                                                    .white),
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        100),
-                                                          ),
-                                                        ),
-                                                        const Icon(
-                                                          Icons
-                                                              .fiber_manual_record,
-                                                          color: Colors.white,
-                                                          size: 95,
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  );
-                                          }),
-                                        ),
-                                      ),
-                                      Padding(
-                                        padding: EdgeInsets.only(
-                                            top: height * 0.05,
-                                            right: width * 0.03),
-                                        child: Align(
-                                          alignment: Alignment.centerRight,
-                                          child: GestureDetector(
-                                            onTap: () {
-                                              isOverTime.value =
-                                                  !isOverTime.value;
-                                            },
-                                            child: Container(
-                                              height: 80,
-                                              width: 100,
-                                              decoration: BoxDecoration(
-                                                border: Border.all(
-                                                    color: Colors.white),
-                                                borderRadius:
-                                                    BorderRadius.circular(15),
+                                                        fontWeight:
+                                                            FontWeight.w500),
+                                                  ),
+                                                ],
+                                              )
+                                            : Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceEvenly,
+                                                children: [
+                                                  Image.asset(
+                                                    'assets/images/overtime.png',
+                                                    width: 40,
+                                                    height: 40,
+                                                  ),
+                                                  Text(
+                                                    "OVERTIME",
+                                                    style: GoogleFonts.poppins(
+                                                        fontSize: 13,
+                                                        color: Colors.orange,
+                                                        fontWeight:
+                                                            FontWeight.w500),
+                                                  ),
+                                                ],
                                               ),
-                                              child:
-                                                  ValueListenableBuilder<bool>(
-                                                valueListenable: isOverTime,
-                                                builder: (context,
-                                                    isOverTimeValue, _) {
-                                                  WidgetsBinding.instance
-                                                      .addPostFrameCallback(
-                                                          (_) {
-                                                    if (isOverTimeValue) {
-                                                      tabHeader.value = {
-                                                        'DOCUMENTARY':
-                                                            'documentary',
-                                                        'OVERTIME IN': 'ot_in',
-                                                        // 'OVERTIME BREAK OUT':
-                                                        //     'ot_break_out',
-                                                        // 'OVERTIME BREAK IN':
-                                                        //     'ot_break_in',
-                                                        'OVERTIME OUT': 'ot_out'
-                                                      };
-                                                    } else {
-                                                      tabHeader.value = {
-                                                        'DOCUMENTARY':
-                                                            'documentary',
-                                                        'TIME IN': 'time_in',
-                                                        'BREAK OUT':
-                                                            'break_out',
-                                                        'BREAK IN': 'break_in',
-                                                        'TIME OUT': 'time_out'
-                                                      };
-                                                    }
-
-                                                    if (isOverTimeValue &&
-                                                        isResetNeeded &&
-                                                        _selectedIndex != 1) {
-                                                      _selectedIndex = 1;
-                                                      attendanceType.value =
-                                                          'ot_in';
-                                                      tabHeaderKey.value =
-                                                          'OVERTIME IN';
-                                                      isResetNeeded = false;
-                                                    }
-
-                                                    if (!isOverTimeValue &&
-                                                        !isResetNeeded &&
-                                                        _selectedIndex != 1) {
-                                                      _selectedIndex = 1;
-                                                      attendanceType.value =
-                                                          'time_in';
-                                                      tabHeaderKey.value =
-                                                          'TIME IN';
-                                                      isResetNeeded = true;
-                                                    }
-
-                                                    update(
-                                                        tabHeader.value.length);
-                                                  });
-
-                                                  return isOverTimeValue
-                                                      ? Column(
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .spaceEvenly,
-                                                          children: [
-                                                            Image.asset(
-                                                              'assets/images/clock.png',
-                                                              width: 40,
-                                                              height: 40,
-                                                            ),
-                                                            Text(
-                                                              "NO OVERTIME",
-                                                              style: GoogleFonts.poppins(
-                                                                  fontSize: 13,
-                                                                  color: Colors
-                                                                      .orange,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500),
-                                                            ),
-                                                          ],
-                                                        )
-                                                      : Column(
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .spaceEvenly,
-                                                          children: [
-                                                            Image.asset(
-                                                              'assets/images/overtime.png',
-                                                              width: 40,
-                                                              height: 40,
-                                                            ),
-                                                            Text(
-                                                              "OVERTIME",
-                                                              style: GoogleFonts.poppins(
-                                                                  fontSize: 13,
-                                                                  color: Colors
-                                                                      .orange,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500),
-                                                            ),
-                                                          ],
-                                                        );
-                                                },
-                                              ),
-                                            ),
-                                          ),
-                                        ),
                                       ),
-                                    ],
+                                    ),
                                   ),
                                 ),
                               ],
-                            )
-                          ],
-                        ),
-                      ),
+                            ),
+                          ),
+                        ],
+                      )
                     ],
                   ),
-                );
-              },
+                ),
+              ],
             ),
           );
-        });
+        },
+      ),
+    );
   }
 }

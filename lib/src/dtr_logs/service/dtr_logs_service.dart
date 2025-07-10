@@ -1,19 +1,27 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:get/get.dart';
 import 'package:rts_locator/src/dtr_logs/model/ot_logs_model.dart';
 import 'package:rts_locator/src/dtr_logs/model/time_logs_model.dart';
+import 'package:rts_locator/src/environment/config_contoller.dart';
+import 'package:rts_locator/src/environment/config_service.dart';
 
 class DtrLogsService {
   final dio = Dio();
   // final baseUrl =
   //     'https://responsivcode-attendance-api.onrender.com/attendanceController';
   final baseUrl = 'http://192.168.1.10/hris/index.php/attendanceController';
+  //final baseUrl = 'http://10.0.2.2/hris/index.php/attendanceController';
+
+  final ConfigController configController =
+      Get.put(ConfigController(ConfigService()));
 
   Future<List<TimeLogsModel>> getTimeLogs(
       {required String employeeId,
       required String dateFrom,
       required String dateTo}) async {
+    //var baseUrl = '${configController.apiUrl.value}/attendanceController';
     var response = await dio.get(
         '$baseUrl/timelogs?employee_id=$employeeId&date_from=$dateFrom&date_to=$dateTo',
         options: Options(
@@ -38,6 +46,7 @@ class DtrLogsService {
       {required String employeeId,
       required String dateFrom,
       required String dateTo}) async {
+    //var baseUrl = '${configController.apiUrl.value}/attendanceController';
     var response = await dio.get(
         '$baseUrl/ot_logs?employee_id=$employeeId&date_from=$dateFrom&date_to=$dateTo',
         options: Options(

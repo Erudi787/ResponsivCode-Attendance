@@ -77,7 +77,8 @@ class HomeController extends GetxController {
         message: 'Starting process...', duration: Duration(seconds: 2)));
 
     // --- Trigger Face Verification ---
-  final bool? isVerified = await Get.toNamed(FaceRecognitionView.routeName);
+  //final bool? isVerified = await Get.toNamed(FaceRecognitionView.routeName);
+  final bool? isVerified = await Get.to(() => FaceRecognitionView());
 
     // If verification fails or the user cancels, stop the process
     if (isVerified != true) {
