@@ -54,8 +54,7 @@ flutter:
 
   assets:
     # Add assets from the images directory to the application.
+    - assets/
     - assets/background/
     - assets/images/
-    - assets/mobilefacenet.tflite
-    - assets/blazeface.tflite
     - .env

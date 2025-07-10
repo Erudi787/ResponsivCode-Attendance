@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:rts_locator/src/facial_recognition/face_data_manager.dart';
 import 'package:rts_locator/src/facial_recognition/facial_recognition_service.dart';
@@ -33,8 +32,7 @@ class _LiveRegistrationViewState extends State<LiveRegistrationView> {
   bool _isCameraInitialized = false;
   bool _isCapturing = false;
   int _photosCaptured = 0;
-  final int _totalPhotos = 5; // Capture 5 photos for a good profile
-  String _currentInstruction = "Look Straight and Start";
+  final int _totalPhotos = 10; // Capture more photos for a better profile
   double get _progress => _photosCaptured / _totalPhotos;
 
   // --- Instructions for User Guidance ---
@@ -44,12 +42,24 @@ class _LiveRegistrationViewState extends State<LiveRegistrationView> {
     "Look Slightly Right",
     "Look Up",
     "Look Down",
+    "Smile!",
+    "Open Your Mouth",
+    "Close Your Eyes",
+    "Tilt Head Left",
+    "Tilt Head Right",
   ];
+  String _currentInstruction = "Press Start";
 
   @override
   void initState() {
     super.initState();
-    _initializeCamera();
+    _initialize();
+  }
+  
+  /// Initializes both the camera and the face recognition service.
+  Future<void> _initialize() async {
+    await _faceService.initialize();
+    await _initializeCamera();
   }
 
   @override
@@ -114,7 +124,7 @@ class _LiveRegistrationViewState extends State<LiveRegistrationView> {
           _photosCaptured++;
         });
       } else {
-        // If a capture fails, retry the same instruction
+        // If a capture fails, inform the user and retry the same instruction
         _showError("Could not detect a face. Please try again.", duration: 2);
         i--;
       }
@@ -133,15 +143,15 @@ class _LiveRegistrationViewState extends State<LiveRegistrationView> {
 
     try {
       final XFile imageXFile = await _cameraController!.takePicture();
-      final File imageFile = File(imageXFile.path);
+      File imageFile = File(imageXFile.path);
 
       // Compress and get embedding
-      final File compressedImage = await _faceService.compressImage(imageFile);
-      final embedding = await _faceService.getFaceEmbedding(compressedImage);
+      imageFile = await _faceService.compressImage(imageFile);
+      final embedding = await _faceService.getFaceEmbedding(imageFile);
 
       if (embedding != null && mounted) {
         final savedImagePath = await _faceService.saveImageToAppDirectory(
-          compressedImage,
+          imageFile,
           widget.personName,
         );
         final faceData = {'embedding': embedding, 'imagePath': savedImagePath};
@@ -176,7 +186,7 @@ class _LiveRegistrationViewState extends State<LiveRegistrationView> {
       ),
     );
     // Navigate to the home screen after successful registration
-    Get.offAllNamed(HomeView.routeName);
+    Navigator.of(context).pushReplacementNamed(HomeView.routeName);
   }
 
   @override
@@ -194,7 +204,7 @@ class _LiveRegistrationViewState extends State<LiveRegistrationView> {
             child: _isCameraInitialized
                 ? Center(
                     child: ClipOval(
-                      child: Container(
+                      child: SizedBox(
                         width: MediaQuery.of(context).size.width * 0.8,
                         height: MediaQuery.of(context).size.width * 0.8,
                         child: CameraPreview(_cameraController!),

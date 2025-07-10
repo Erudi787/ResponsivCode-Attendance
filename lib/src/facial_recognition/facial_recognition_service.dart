@@ -34,8 +34,8 @@ class FaceRecognitionService {
   Future<void> initialize() async {
     try {
       final options = InterpreterOptions()..threads = 4;
-      _faceNetInterpreter = await Interpreter.fromAsset('mobilefacenet.tflite', options: options);
-      _faceDetectorInterpreter = await Interpreter.fromAsset('blazeface.tflite', options: options);
+      _faceNetInterpreter = await Interpreter.fromAsset('assets/mobilefacenet.tflite', options: options);
+      _faceDetectorInterpreter = await Interpreter.fromAsset('assets/blazeface.tflite', options: options);
       debugPrint("✅ Models loaded successfully.");
     } catch (e) {
       debugPrint("❌ Failed to load models: $e");
