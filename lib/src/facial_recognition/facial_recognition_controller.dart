@@ -29,7 +29,7 @@ class FacialRecognitionController extends GetxController {
   /// - Returns `true` if the face is a match, `false` otherwise.
   Future<bool> verifyFace(File imageFile, String personName) async {
     isLoading.value = true;
-    recognitionResult.value = null;
+    recognitionResult.value = "Verifying...";
     bestMatchDistance.value = double.infinity;
 
     try {

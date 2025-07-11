@@ -11,8 +11,9 @@ class DtrLogsService {
   final dio = Dio();
   // final baseUrl =
   //     'https://responsivcode-attendance-api.onrender.com/attendanceController';
-  final baseUrl = 'http://192.168.1.10/hris/index.php/attendanceController';
+  //final baseUrl = 'http://192.168.1.10/hris/index.php/attendanceController';
   //final baseUrl = 'http://10.0.2.2/hris/index.php/attendanceController';
+  final baseUrl = 'http://192.168.1.4/hris/index.php/attendanceController';
 
   final ConfigController configController =
       Get.put(ConfigController(ConfigService()));

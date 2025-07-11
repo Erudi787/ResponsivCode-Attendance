@@ -23,17 +23,19 @@ class FaceRecognitionView extends StatefulWidget {
 
 class _FaceRecognitionViewState extends State<FaceRecognitionView> {
   // --- Dependencies & Controllers ---
-  final FacialRecognitionController _controller = Get.find<FacialRecognitionController>();
+  final FacialRecognitionController _controller =
+      Get.find<FacialRecognitionController>();
   CameraController? _cameraController;
 
   // --- State Management ---
   bool _isCameraInitialized = false;
-  String _message = "Please position your face in the frame";
+  bool _isProcessing = false;
+  bool _hasNavigated = false; // Prevent multiple navigation calls
 
   @override
   void initState() {
     super.initState();
-    _initializeCameraAndVerify();
+    _initializeCamera();
   }
 
   @override
@@ -42,11 +44,32 @@ class _FaceRecognitionViewState extends State<FaceRecognitionView> {
     super.dispose();
   }
 
+  /// Navigate back with result
+  void _navigateBack(bool result) {
+    if (!_hasNavigated) {
+      _hasNavigated = true;
+      // Dispose camera before navigating
+      _cameraController?.dispose();
+      // Use Get.back with closeOverlays to ensure all overlays are closed
+      Get.back(result: result, closeOverlays: true);
+    }
+  }
+
   /// Initializes the camera and starts the automatic verification process.
-  Future<void> _initializeCameraAndVerify() async {
-    final status = await Permission.camera.request();
-    if (status.isGranted) {
+  Future<void> _initializeCamera() async {
+    try {
+      final status = await Permission.camera.request();
+      if (!status.isGranted) {
+        _showErrorAndGoBack("Camera permission is required for verification.");
+        return;
+      }
+
       final cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        _showErrorAndGoBack("No cameras available.");
+        return;
+      }
+
       final frontCamera = cameras.firstWhere(
         (camera) => camera.lensDirection == CameraLensDirection.front,
         orElse: () => cameras.first,
@@ -58,37 +81,45 @@ class _FaceRecognitionViewState extends State<FaceRecognitionView> {
         enableAudio: false,
       );
 
-      try {
-        await _cameraController!.initialize();
-        if (mounted) {
-          setState(() {
-            _isCameraInitialized = true;
-          });
-          // Wait a moment before capturing to allow the user to get ready
-          Future.delayed(const Duration(seconds: 2), _captureAndVerify);
+      await _cameraController!.initialize();
+      
+      if (!mounted) return;
+      
+      setState(() {
+        _isCameraInitialized = true;
+      });
+      
+      // Auto-capture after 2 seconds
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted && !_isProcessing && !_hasNavigated) {
+          _captureAndVerify();
         }
-      } catch (e) {
-        _showErrorAndGoBack("Failed to initialize camera: $e");
-      }
-    } else {
-      _showErrorAndGoBack("Camera permission is required for verification.");
+      });
+    } catch (e) {
+      debugPrint("Camera initialization error: $e");
+      _showErrorAndGoBack("Failed to initialize camera: $e");
     }
   }
 
   /// Captures an image and passes it to the controller for verification.
   Future<void> _captureAndVerify() async {
+    if (_isProcessing || _hasNavigated) return;
+    
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
+      _showErrorAndGoBack("Camera not ready.");
       return;
     }
 
     setState(() {
-      _message = "Verifying...";
+      _isProcessing = true;
     });
 
     try {
+      // Capture image
       final imageXFile = await _cameraController!.takePicture();
       final imageFile = File(imageXFile.path);
 
+      // Get user info
       final box = GetStorage();
       final personName = box.read('fullname') as String?;
 
@@ -97,90 +128,183 @@ class _FaceRecognitionViewState extends State<FaceRecognitionView> {
         return;
       }
 
+      // Verify face
       final success = await _controller.verifyFace(imageFile, personName);
 
-      if (mounted) {
-        setState(() {
-          _message = _controller.recognitionResult.value ?? "Verification Complete";
-        });
+      if (!mounted && !_hasNavigated) {
+        _navigateBack(success);
+        return;
+      }
 
-        if (success) {
-           Get.snackbar(
-            "Success",
-            "Face recognized successfully!",
-            snackPosition: SnackPosition.BOTTOM,
+      if (success) {
+        // Show success message briefly
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Face recognized successfully!"),
             backgroundColor: Colors.green,
-            colorText: Colors.white,
-          );
-          // Return true to the previous screen
-          Get.back(result: true);
-        } else {
-           Get.snackbar(
-            "Verification Failed",
-            _controller.recognitionResult.value ?? "Could not verify face.",
-            snackPosition: SnackPosition.BOTTOM,
+            duration: Duration(seconds: 1),
+          ),
+        );
+        
+        // Wait a bit for the message to show, then navigate
+        await Future.delayed(const Duration(milliseconds: 300));
+        _navigateBack(true);
+      } else {
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_controller.recognitionResult.value ?? 
+                "Could not verify face."),
             backgroundColor: Colors.red,
-            colorText: Colors.white,
-          );
-           // Return false to the previous screen
-          Get.back(result: false);
-        }
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        
+        // Wait and navigate back with failure
+        await Future.delayed(const Duration(milliseconds: 300));
+        _navigateBack(false);
       }
     } catch (e) {
-      _showErrorAndGoBack("Failed to capture image: $e");
+      debugPrint("Face verification error: $e");
+      _showErrorAndGoBack("Failed to process image: ${e.toString()}");
+    } finally {
+      if (mounted && !_hasNavigated) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
     }
   }
 
   void _showErrorAndGoBack(String message) {
-    if (mounted) {
-      Get.snackbar(
-        "Error",
-        message,
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-      // Return false to indicate failure
-      Get.back(result: false);
+    if (!mounted && !_hasNavigated) {
+      _navigateBack(false);
+      return;
     }
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+    
+    Future.delayed(const Duration(milliseconds: 300), () {
+      _navigateBack(false);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Face Verification"),
-        centerTitle: true,
-        automaticallyImplyLeading: false, // Prevents user from going back manually
-      ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // --- Camera Preview ---
-          Expanded(
-            child: Center(
-              child: ClipOval(
-                child: SizedBox(
-                  width: MediaQuery.of(context).size.width * 0.8,
-                  height: MediaQuery.of(context).size.width * 0.8,
-                  child: _isCameraInitialized
-                      ? CameraPreview(_cameraController!)
-                      : const Center(child: CircularProgressIndicator()),
+    return WillPopScope(
+      onWillPop: () async {
+        if (!_isProcessing) {
+          _navigateBack(false);
+        }
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          title: const Text("Face Verification"),
+          centerTitle: true,
+          backgroundColor: Colors.black,
+          automaticallyImplyLeading: false,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: _isProcessing 
+                  ? null 
+                  : () => _navigateBack(false),
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Camera Preview
+              Expanded(
+                flex: 3,
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: Container(
+                      margin: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white,
+                          width: 3,
+                        ),
+                      ),
+                      child: ClipOval(
+                        child: _isCameraInitialized && _cameraController != null
+                            ? CameraPreview(_cameraController!)
+                            : const Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
+              // Status and Button
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Obx(() {
+                        final message = _controller.recognitionResult.value ??
+                            "Position your face in the frame";
+                        final isLoading = _controller.isLoading.value || _isProcessing;
+                        
+                        return Text(
+                          isLoading ? "Verifying..." : message,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 30),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: (_isCameraInitialized && 
+                                  !_isProcessing && 
+                                  !_controller.isLoading.value)
+                              ? _captureAndVerify
+                              : null,
+                          icon: const Icon(Icons.camera_alt),
+                          label: const Text("Verify Face"),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 16,
+                              horizontal: 32,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-          // --- Status Message ---
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Obx(() => Text(
-                  _controller.isLoading.value ? "Processing..." : _message,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                )),
-          ),
-        ],
+        ),
       ),
     );
   }
