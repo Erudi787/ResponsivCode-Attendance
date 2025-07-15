@@ -253,7 +253,8 @@ class _HomeViewState extends State<HomeView>
                     size: 26,
                   ),
                   onPressed: () {
-                    Get.offAllNamed(SettingsView.routeName);
+                    //Get.offAllNamed(SettingsView.routeName);
+                    Get.toNamed(SettingsView.routeName);
                   },
                 ),
               )
