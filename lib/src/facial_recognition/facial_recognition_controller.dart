@@ -1,3 +1,5 @@
+// lib/src/facial_recognition/facial_recognition_controller.dart
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -10,7 +12,8 @@ import 'package:rts_locator/src/facial_recognition/facial_recognition_service.da
 /// to perform tasks such as user registration and face verification.
 class FacialRecognitionController extends GetxController {
   // --- Dependencies ---
-  final FaceRecognitionService _faceService = Get.find<FaceRecognitionService>();
+  final FaceRecognitionService _faceService =
+      Get.find<FaceRecognitionService>();
   final FaceDataManager _dataManager = Get.find<FaceDataManager>();
 
   // --- Observable State ---
@@ -20,8 +23,11 @@ class FacialRecognitionController extends GetxController {
 
   /// The confidence threshold for detecting a face in an image.
   static const double _faceDetectionConfidence = 0.75;
+
   /// The distance threshold for recognizing a face. Lower is stricter.
-  static const double _recognitionThreshold = 1.0;
+  // --- MODIFIED LINE ---
+  static const double _recognitionThreshold =
+      0.85; // Lowered from 1.0 to make it stricter
 
   /// Verifies a user's face against their registered profile.
   ///
@@ -52,14 +58,16 @@ class FacialRecognitionController extends GetxController {
       double minDistance = double.infinity;
 
       for (var registeredFace in registeredAlbum) {
-        final knownEmbedding = (registeredFace['embedding'] as List).cast<double>();
-        final distance = _faceService.calculateDistance(unknownEmbedding, knownEmbedding);
+        final knownEmbedding =
+            (registeredFace['embedding'] as List).cast<double>();
+        final distance =
+            _faceService.calculateDistance(unknownEmbedding, knownEmbedding);
 
         if (distance < minDistance) {
           minDistance = distance;
         }
       }
-      
+
       bestMatchDistance.value = minDistance;
 
       if (minDistance <= _recognitionThreshold) {
