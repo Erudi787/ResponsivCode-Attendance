@@ -26,6 +26,51 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Define the High Contrast Theme
+    final highContrastTheme = ThemeData(
+      brightness: Brightness.light,
+      primaryColor: Colors.black,
+      scaffoldBackgroundColor: Colors.white,
+      colorScheme: const ColorScheme.light(
+        primary: Colors.black,
+        secondary: Colors.yellow, // A high-contrast accent
+        onPrimary: Colors.white,
+        onSecondary: Colors.black,
+        background: Colors.white,
+        surface: Colors.white,
+        onBackground: Colors.black,
+        onSurface: Colors.black,
+        error: Colors.red,
+        onError: Colors.white,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 1,
+      ),
+      textTheme: const TextTheme(
+        bodyLarge: TextStyle(color: Colors.black),
+        bodyMedium: TextStyle(color: Colors.black),
+        displayLarge: TextStyle(color: Colors.black),
+        displayMedium: TextStyle(color: Colors.black),
+        displaySmall: TextStyle(color: Colors.black),
+        headlineMedium: TextStyle(color: Colors.black),
+        headlineSmall: TextStyle(color: Colors.black),
+        titleLarge: TextStyle(color: Colors.black),
+      ),
+      buttonTheme: const ButtonThemeData(
+        buttonColor: Colors.yellow,
+        textTheme: ButtonTextTheme.primary,
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          foregroundColor: Colors.black,
+          backgroundColor: Colors.yellow,
+        ),
+      ),
+      iconTheme: const IconThemeData(color: Colors.black),
+    );
+
     return ListenableBuilder(
       listenable: settingsController,
       builder: (BuildContext context, Widget? child) {
@@ -42,7 +87,10 @@ class MyApp extends StatelessWidget {
           ],
           onGenerateTitle: (BuildContext context) =>
               AppLocalizations.of(context)!.appTitle,
-          theme: ThemeData(),
+          // Use the highContrastTheme when themeMode is light
+          theme: settingsController.themeMode == ThemeMode.light
+              ? highContrastTheme
+              : ThemeData(),
           darkTheme: ThemeData.dark(),
           themeMode: settingsController.themeMode,
           getPages: [
@@ -68,7 +116,8 @@ class MyApp extends StatelessWidget {
             GetPage(
               name: LiveRegistrationView.routeName,
               // Use Get.arguments to pass the person's name to the view
-              page: () => LiveRegistrationView(personName: Get.arguments as String),
+              page: () =>
+                  LiveRegistrationView(personName: Get.arguments as String),
             ),
             GetPage(
               name: FaceRecognitionView.routeName,

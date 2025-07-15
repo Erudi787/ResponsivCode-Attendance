@@ -1,3 +1,5 @@
+// lib/src/settings/settings_view.dart
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -29,111 +31,126 @@ class SettingsView extends StatelessWidget {
           onPressed: () => Get.offAllNamed(HomeView.routeName),
         ),
       ),
-      body: SizedBox(
-        height: height - height * 0.120625,
-        width: width,
-        child: Padding(
-          padding: EdgeInsets.only(
-              left: width * 0.06,
-              top: height * 0.05669375,
-              right: width * 0.06,
-              bottom: height * 0.05669375),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Column(
+      body: Stack(
+        children: [
+          Center(
+            child: Opacity(
+              opacity: 0.5,
+              child: Image.asset(
+                'assets/background/logo.png', // Correct asset path
+                width: width * 0.7, // Adjust size as needed
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+          SizedBox(
+            height: height - height * 0.120625,
+            width: width,
+            child: Padding(
+              padding: EdgeInsets.only(
+                  left: width * 0.06,
+                  top: height * 0.05669375,
+                  right: width * 0.06,
+                  bottom: height * 0.05669375),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: DropdownButton<ThemeMode>(
-                      // Read the selected themeMode from the controller
-                      value: controller.themeMode,
-                      // Call the updateThemeMode method any time the user selects a theme.
-                      onChanged: controller.updateThemeMode,
-                      items: const [
-                        DropdownMenuItem(
-                          value: ThemeMode.system,
-                          child: Text('System Theme'),
+                  Column(
+                    children: [
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: DropdownButton<ThemeMode>(
+                          // Read the selected themeMode from the controller
+                          value: controller.themeMode,
+                          // Call the updateThemeMode method any time the user selects a theme.
+                          onChanged: controller.updateThemeMode,
+                          items: const [
+                            DropdownMenuItem(
+                              value: ThemeMode.system,
+                              child: Text('System Theme'),
+                            ),
+                            DropdownMenuItem(
+                              value: ThemeMode.light,
+                              child:
+                                  Text('High Contrast Theme'), // Changed text
+                            ),
+                            DropdownMenuItem(
+                              value: ThemeMode.dark,
+                              child: Text('Dark Theme'),
+                            )
+                          ],
                         ),
-                        DropdownMenuItem(
-                          value: ThemeMode.light,
-                          child: Text('Light Theme'),
-                        ),
-                        DropdownMenuItem(
-                          value: ThemeMode.dark,
-                          child: Text('Dark Theme'),
-                        )
-                      ],
-                    ),
-                  ),
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      "General",
-                      textAlign: TextAlign.left,
-                      style:
-                          TextStyle(fontWeight: FontWeight.w500, fontSize: 24),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 20),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: ListTile(
-                        style: ListTileStyle.list,
-                        leading: const Icon(
-                          Icons.list_alt_rounded,
-                          color: Colors.blue,
-                        ),
-                        title: const Text(
-                          "View DTR Logs",
+                      ),
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          "General",
+                          textAlign: TextAlign.left,
                           style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 18),
+                              fontWeight: FontWeight.w500, fontSize: 24),
                         ),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            side: const BorderSide(width: 1)),
-                        onTap: () {
-                          Get.toNamed(DtrLogsView.routeName);
-                        },
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 20),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: ListTile(
+                            style: ListTileStyle.list,
+                            leading: const Icon(
+                              Icons.list_alt_rounded,
+                              color: Colors.blue,
+                            ),
+                            title: const Text(
+                              "View DTR Logs",
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 18),
+                            ),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                side: const BorderSide(width: 1)),
+                            onTap: () {
+                              Get.toNamed(DtrLogsView.routeName);
+                            },
+                          ),
+                        ),
+                      )
+                    ],
+                  ),
+                  GestureDetector(
+                    onTap: () async {
+                      await controller.logout();
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFCC0F2B), Color(0xFFF9A620)],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          borderRadius: BorderRadius.circular(10)),
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                            left: width * 0.355,
+                            top: height * 0.01809375,
+                            right: width * 0.355,
+                            bottom: height * 0.01809375),
+                        child: Text(
+                          "LOGOUT",
+                          style: GoogleFonts.poppins(
+                              fontSize: height * 0.018,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 0.1,
+                              color: Colors.white),
+                        ),
                       ),
                     ),
                   )
                 ],
               ),
-              GestureDetector(
-                onTap: () async {
-                  await controller.logout();
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFCC0F2B), Color(0xFFF9A620)],
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                      ),
-                      borderRadius: BorderRadius.circular(10)),
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                        left: width * 0.355,
-                        top: height * 0.01809375,
-                        right: width * 0.355,
-                        bottom: height * 0.01809375),
-                    child: Text(
-                      "LOGOUT",
-                      style: GoogleFonts.poppins(
-                          fontSize: height * 0.018,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.1,
-                          color: Colors.white),
-                    ),
-                  ),
-                ),
-              )
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
