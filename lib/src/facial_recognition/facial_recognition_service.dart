@@ -10,27 +10,16 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 
-/// A singleton service for handling face detection and recognition.
-///
-/// This service loads the TFLite models for face detection (BlazeFace) and
-/// face embedding generation (MobileFaceNet). It provides methods to process
-/// images, extract facial features, and compare them.
 class FaceRecognitionService {
   // --- Singleton Setup ---
   static final FaceRecognitionService _instance = FaceRecognitionService._internal();
   factory FaceRecognitionService() => _instance;
   FaceRecognitionService._internal();
 
-  // --- TFLite Interpreters ---
   Interpreter? _faceNetInterpreter;
   Interpreter? _faceDetectorInterpreter;
 
-  /// Indicates whether the TFLite models have been successfully initialized.
   bool get isInitialized => _faceNetInterpreter != null && _faceDetectorInterpreter != null;
-
-  /// Loads the TFLite models from the app's assets.
-  ///
-  /// This must be called before any other methods are used.
   Future<void> initialize() async {
     try {
       final options = InterpreterOptions()..threads = 4;
@@ -43,8 +32,6 @@ class FaceRecognitionService {
     }
   }
 
-  /// Takes an image file and returns a 192-dimensional embedding vector.
-  ///
   /// Returns `null` if no face is detected with sufficient confidence.
   Future<List<double>?> getFaceEmbedding(File imageFile, {double confidence = 0.75}) async {
     if (!isInitialized) {
@@ -55,13 +42,12 @@ class FaceRecognitionService {
       final image = img.decodeImage(await imageFile.readAsBytes());
       if (image == null) return null;
 
-      // --- 1. Face Detection using BlazeFace ---
       final detectorInput = img.copyResize(image, width: 128, height: 128);
       final detectorInputBytes = _imageToByteListFloat32(detectorInput, 128, 127.5, 127.5);
 
       final detectorOutputs = {
-        0: List.filled(1 * 896 * 16, 0).reshape([1, 896, 16]), // Bounding boxes
-        1: List.filled(1 * 896 * 1, 0).reshape([1, 896, 1]),   // Confidence scores
+        0: List.filled(1 * 896 * 16, 0).reshape([1, 896, 16]), 
+        1: List.filled(1 * 896 * 1, 0).reshape([1, 896, 1]), 
       };
 
       _faceDetectorInterpreter!.runForMultipleInputs([detectorInputBytes], detectorOutputs);
@@ -81,7 +67,6 @@ class FaceRecognitionService {
         return null;
       }
 
-      // --- 2. Crop the face from the original image ---
       final boxes = (detectorOutputs[0]![0] as List<List<num>>).map((box) => box.map((e) => e.toDouble()).toList()).toList();
       final boundingBox = boxes[bestIndex];
       
@@ -97,7 +82,6 @@ class FaceRecognitionService {
 
       final faceCrop = img.copyCrop(image, x: x, y: y, width: width, height: height);
 
-      // --- 3. Face Embedding Generation using MobileFaceNet ---
       final recognizerInput = img.copyResize(faceCrop, width: 112, height: 112);
       final recognizerInputBytes = _imageToByteListFloat32(recognizerInput, 112, 127.5, 127.5);
       

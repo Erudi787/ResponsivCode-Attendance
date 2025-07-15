@@ -1,6 +1,9 @@
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart'; 
 import 'package:rts_locator/src/environment/config_contoller.dart';
 import 'package:rts_locator/src/environment/config_service.dart';
+import 'package:rts_locator/src/facial_recognition/face_data_manager.dart'; 
+import 'package:rts_locator/src/facial_recognition/live_registration_view.dart'; 
 import 'package:rts_locator/src/fluttertoast/fluttertoast_controller.dart';
 import 'package:rts_locator/src/fluttertoast/fluttertoast_service.dart';
 import 'package:rts_locator/src/home/home_view.dart';
@@ -13,6 +16,9 @@ class LoginController extends GetxController {
       Get.put(ConfigController(ConfigService()));
   final FluttertoastController _fluttertoastController =
       Get.put(FluttertoastController(FluttertoastService()));
+      
+  final FaceDataManager _dataManager = Get.find<FaceDataManager>();
+  final box = GetStorage();
 
   LoginController(this._loginService);
 
@@ -32,8 +38,15 @@ class LoginController extends GetxController {
 
     if (response['flag']) {
       isLoading.value = false;
-      Get.offAllNamed(HomeView.routeName);
-      update();
+      
+      final fullname = box.read('fullname') as String?;
+
+      if (fullname != null && !_dataManager.containsKey(fullname)) {
+        Get.offAllNamed(LiveRegistrationView.routeName, arguments: fullname);
+      } else {
+        Get.offAllNamed(HomeView.routeName);
+      }
+      
     } else {
       isLoading.value = false;
     }
