@@ -1,3 +1,5 @@
+// lib/src/home/home_view.dart
+
 import 'dart:convert';
 
 import 'package:camera/camera.dart';
@@ -83,6 +85,7 @@ class _HomeViewState extends State<HomeView>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    homeController.checkAttendanceStatus();
     // Initialize TabController with regular tabs
     _tabController =
         TabController(length: regularTabs.length, vsync: this, initialIndex: 1);
@@ -316,13 +319,6 @@ class _HomeViewState extends State<HomeView>
                       SizedBox(
                         height: height,
                         width: width,
-                        // child: homeController.selectedCameraIndex == 0
-                        //     ? CameraPreview(homeController.cameraController!)
-                        //     : Transform(
-                        //         alignment: Alignment.center,
-                        //         transform: Matrix4.identity()..rotateY(math.pi),
-                        //         child: CameraPreview(
-                        //             homeController.cameraController!)),
                         child: CameraPreview(homeController.cameraController!),
                       ),
                       if (_tabController.index == 0)
@@ -410,6 +406,22 @@ class _HomeViewState extends State<HomeView>
                                             )
                                           : GestureDetector(
                                               onTap: () async {
+                                                final isEnabled = homeController
+                                                        .tabAvailability[
+                                                            attendanceType]
+                                                        ?.value ??
+                                                    false;
+
+                                                if (!isEnabled) {
+                                                  Fluttertoast.showToast(
+                                                    msg:
+                                                        "You have already completed this action for today.",
+                                                    gravity:
+                                                        ToastGravity.CENTER,
+                                                  );
+                                                  return;
+                                                }
+
                                                 await _determinePosition();
 
                                                 if (plusCode.isEmpty ||
