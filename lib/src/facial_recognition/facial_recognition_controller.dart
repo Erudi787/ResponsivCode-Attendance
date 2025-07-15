@@ -22,17 +22,11 @@ class FacialRecognitionController extends GetxController {
   final RxDouble bestMatchDistance = (0.0).obs;
 
   /// The confidence threshold for detecting a face in an image.
-  static const double _faceDetectionConfidence = 0.75;
+  static const double _faceDetectionConfidence = 0.95;
 
-  /// The distance threshold for recognizing a face. Lower is stricter.
-  // --- MODIFIED LINE ---
   static const double _recognitionThreshold =
-      0.85; // Lowered from 1.0 to make it stricter
+      0.8; // Lowered from 1.0 to make it stricter
 
-  /// Verifies a user's face against their registered profile.
-  ///
-  /// - Takes an `imageFile` and the `personName` to verify.
-  /// - Returns `true` if the face is a match, `false` otherwise.
   Future<bool> verifyFace(File imageFile, String personName) async {
     isLoading.value = true;
     recognitionResult.value = "Verifying...";
