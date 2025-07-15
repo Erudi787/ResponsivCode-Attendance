@@ -65,136 +65,136 @@ class HomeController extends GetxController {
   }
 
   Future<void> captureAndUpload({
-  required String note,
-  required String attendanceType,
-  required double latitude,
-  required double longitude,
-  required String plusCode,
-  required String tabHeader,
-  required String address_complete,
-}) async {
-  try {
-    isLoading.value = true;
+    required String note,
+    required String attendanceType,
+    required double latitude,
+    required double longitude,
+    required String plusCode,
+    required String tabHeader,
+    required String address_complete,
+  }) async {
+    try {
+      isLoading.value = true;
+      File? modifiedImage;
 
-    Get.snackbar(
-      'Processing',
-      'Starting face verification...',
-      duration: const Duration(seconds: 1),
-      snackPosition: SnackPosition.BOTTOM,
-    );
+      // --- Conditional Face Recognition ---
+      if (attendanceType == 'documentary') {
+        // 1. For 'documentary', capture image directly without face recognition
+        Get.snackbar(
+          'Processing',
+          'Capturing documentary image...',
+          duration: const Duration(seconds: 2),
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        // The service method already adds the watermark
+        modifiedImage = await _homeService.captureImage(
+          note: note,
+          latitude: latitude,
+          longitude: longitude,
+          plusCode: plusCode,
+          tabHeader: tabHeader,
+          address_complete: address_complete,
+        );
+      } else {
+        // 2. For all other types, perform face verification first
+        Get.snackbar(
+          'Processing',
+          'Starting face verification...',
+          duration: const Duration(seconds: 1),
+          snackPosition: SnackPosition.BOTTOM,
+        );
 
-    // Navigate to face recognition and wait for an image file
-    final File? imageFromVerification = await Get.to<File?>(
-      () => const FaceRecognitionView(),
-      transition: Transition.rightToLeft,
-      duration: const Duration(milliseconds: 300),
-    );
+        final File? imageFromVerification = await Get.to<File?>(
+          () => const FaceRecognitionView(),
+          transition: Transition.rightToLeft,
+          duration: const Duration(milliseconds: 300),
+        );
 
-    // Check if verification was successful and an image was returned
-    if (imageFromVerification == null) {
+        if (imageFromVerification == null) {
+          isLoading.value = false;
+          Get.snackbar(
+            'Cancelled',
+            'Face verification failed or was cancelled.',
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+            snackPosition: SnackPosition.BOTTOM,
+          );
+          await initializeCamera(); // Re-initialize camera for a new attempt
+          return;
+        }
+
+        // Add watermark to the verified image
+        modifiedImage = await _homeService.addWatermarkAndSave(
+          imageFile: imageFromVerification,
+          note: note,
+          latitude: latitude,
+          longitude: longitude,
+          plusCode: plusCode,
+          tabHeader: tabHeader,
+          address_complete: address_complete,
+        );
+      }
+
+      // --- Common Logic (Upload and Navigate) ---
+      if (modifiedImage == null) {
+        isLoading.value = false;
+        Get.snackbar(
+          'Error',
+          'Failed to process the image.',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return;
+      }
+
+      Fluttertoast.showToast(msg: 'Image processed successfully!');
+
+      final dataInDatabase = await _homeService.uploadToDatabase(data: {
+        'note': note,
+        'attendance_type': attendanceType,
+        'long_lat': '$latitude, $longitude',
+        'address': plusCode,
+        'address_complete': address_complete,
+      });
+
+      await Workmanager().registerOneOffTask(
+        'uniqueName_${DateTime.now().millisecondsSinceEpoch}',
+        'uploadTask',
+        constraints: Constraints(networkType: NetworkType.connected),
+        inputData: {
+          'id': dataInDatabase,
+          'filePath': modifiedImage.path,
+        },
+      );
+
       isLoading.value = false;
       Get.snackbar(
-        'Cancelled',
-        'Face verification failed or was cancelled.',
-        backgroundColor: Colors.red,
+        'Success',
+        'Attendance recorded successfully!',
+        backgroundColor: Colors.green,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
         duration: const Duration(seconds: 2),
       );
-      // IMPORTANT: Reinitialize camera if user cancels so they can try again.
-      await initializeCamera();
-      return;
-    }
 
-    // Face verification successful - continue with attendance recording
-    Get.snackbar(
-      'Processing',
-      'Recording attendance...',
-      duration: const Duration(seconds: 1),
-      snackPosition: SnackPosition.BOTTOM,
-    );
-
-    // Now add the watermark to the image received from face verification
-    final modifiedImage = await _homeService.addWatermarkAndSave(
-      imageFile: imageFromVerification,
-      note: note,
-      latitude: latitude,
-      longitude: longitude,
-      plusCode: plusCode,
-      tabHeader: tabHeader,
-      address_complete: address_complete,
-    );
-
-    if (modifiedImage == null) {
+      // Navigate to DTR logs view
+      Get.offAllNamed(DtrLogsView.routeName);
+    } catch (e) {
       isLoading.value = false;
+      debugPrint('Error in captureAndUpload: $e');
       Get.snackbar(
         'Error',
-        'Failed to process attendance image',
+        'An error occurred: ${e.toString()}',
         backgroundColor: Colors.red,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 3),
       );
-      return;
+      // Ensure camera is re-initialized on error
+      await initializeCamera();
     }
-
-    // Show capture success
-    Fluttertoast.showToast(msg: 'Image captured!');
-
-    // Save to database
-    final dataInDatabase = await _homeService.uploadToDatabase(data: {
-      'note': note,
-      'attendance_type': attendanceType,
-      'long_lat': '$latitude, $longitude',
-      'address': plusCode,
-      'address_complete': address_complete,
-    });
-
-    // Schedule background upload
-    await Workmanager().registerOneOffTask(
-      'uniqueName_${DateTime.now().millisecondsSinceEpoch}',
-      'uploadTask',
-      constraints: Constraints(networkType: NetworkType.connected),
-      inputData: {
-        'id': dataInDatabase,
-        'filePath': modifiedImage.path,
-      },
-    );
-
-    // Success
-    debugPrint("Attendance recorded successfully!");
-    isLoading.value = false;
-
-    Get.snackbar(
-      'Success',
-      'Attendance recorded successfully!',
-      backgroundColor: Colors.green,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.BOTTOM,
-      duration: const Duration(seconds: 2),
-    );
-    
-    // Re-initialize the camera for the next use
-    await initializeCamera();
-
-    // Navigate to DTR logs
-    await Future.delayed(const Duration(milliseconds: 300));
-    //Get.toNamed(DtrLogsView.routeName);
-    Get.offAllNamed(DtrLogsView.routeName);
-  } catch (e) {
-    isLoading.value = false;
-    debugPrint('Error in captureAndUpload: $e');
-    Get.snackbar(
-      'Error',
-      'An error occurred: ${e.toString()}',
-      backgroundColor: Colors.red,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.BOTTOM,
-      duration: const Duration(seconds: 3),
-    );
-    // Ensure camera is re-initialized on error
-    await initializeCamera();
   }
-}
 
   // Method to switch between cameras
   Future<void> switchCamera() async {
