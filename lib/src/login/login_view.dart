@@ -23,7 +23,17 @@ class _LoginViewState extends State<LoginView> {
 
   final TextEditingController _passwordController = TextEditingController();
 
+  final FocusNode _usernameFocusNode = FocusNode();
+  final FocusNode _passwordFocusNode = FocusNode();
+
   bool passwordObscured = true;
+
+  @override
+  void dispose() {
+    _usernameFocusNode.dispose();
+    _passwordFocusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -100,6 +110,7 @@ class _LoginViewState extends State<LoginView> {
                                     Expanded(
                                       child: TextFormField(
                                         controller: _usernameController,
+                                        focusNode: _usernameFocusNode,
                                         style: GoogleFonts.poppins(
                                             fontSize: height * 0.0168875,
                                             fontWeight: FontWeight.w600,
@@ -119,6 +130,10 @@ class _LoginViewState extends State<LoginView> {
                                             ),
                                           ),
                                         ),
+                                        textInputAction: TextInputAction.next,
+                                        onFieldSubmitted: (_) {
+                                          FocusScope.of(context).requestFocus(_passwordFocusNode);
+                                        },
                                         validator: (value) {
                                           value =
                                               _usernameController.text.trim();
@@ -145,6 +160,7 @@ class _LoginViewState extends State<LoginView> {
                                     child: TextFormField(
                                       obscureText: passwordObscured,
                                       controller: _passwordController,
+                                      focusNode: _passwordFocusNode,
                                       style: GoogleFonts.poppins(
                                           fontSize: height * 0.0168875,
                                           fontWeight: FontWeight.w600,
@@ -176,6 +192,15 @@ class _LoginViewState extends State<LoginView> {
                                                   Icons.visibility_off),
                                         ),
                                       ),
+                                      textInputAction: TextInputAction.done,
+                                      onFieldSubmitted: (_) {
+                                        if (_formKey.currentState!.validate()) {
+                                          _loginController.login(
+                                            username: _usernameController.text.trim(), 
+                                            password: _passwordController.text.trim(),
+                                          );
+                                        }
+                                      },
                                       validator: (value) {
                                         value = _passwordController.text.trim();
                                         if (value.isEmpty) {

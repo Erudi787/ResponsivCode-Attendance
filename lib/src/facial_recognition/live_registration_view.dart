@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:rts_locator/src/facial_recognition/face_data_manager.dart';
 import 'package:rts_locator/src/facial_recognition/facial_recognition_service.dart';
@@ -186,7 +187,8 @@ class _LiveRegistrationViewState extends State<LiveRegistrationView> {
       ),
     );
     // Navigate to the home screen after successful registration
-    Navigator.of(context).pushReplacementNamed(HomeView.routeName);
+    //Navigator.of(context).pushReplacementNamed(HomeView.routeName);
+    Get.offAllNamed(HomeView.routeName);
   }
 
   @override
