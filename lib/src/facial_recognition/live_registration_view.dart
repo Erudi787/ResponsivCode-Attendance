@@ -178,7 +178,7 @@ class _LiveRegistrationViewState extends State<LiveRegistrationView> {
     }
   }
 
-  void _showSuccessAndNavigate() {
+  Future<void> _showSuccessAndNavigate() async {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text("✅ Registration complete for ${widget.personName}!"),
@@ -188,6 +188,7 @@ class _LiveRegistrationViewState extends State<LiveRegistrationView> {
     );
     // Navigate to the home screen after successful registration
     //Navigator.of(context).pushReplacementNamed(HomeView.routeName);
+    await _cameraController?.dispose();
     Get.offAllNamed(HomeView.routeName);
   }
 
