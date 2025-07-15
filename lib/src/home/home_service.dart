@@ -30,6 +30,9 @@ class HomeService {
 
   // Initialize the camera
   Future<void> initializeCamera() async {
+    if (_cameraController != null) {
+      await _cameraController!.dispose();
+    }
     _cameras = await availableCameras();
     await _initCameraController(_cameras[_selectedCameraIndex]);
   }
