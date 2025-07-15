@@ -61,8 +61,8 @@ class HomeService {
     }
   }
 
-  // Capture an image and save it to the device
-  Future<File?> captureImage({
+  Future<File?> addWatermarkAndSave({
+    required File imageFile,
     required String note,
     required double latitude,
     required double longitude,
@@ -70,44 +70,65 @@ class HomeService {
     required String tabHeader,
     required String address_complete,
   }) async {
-    if (_cameraController != null && _cameraController!.value.isInitialized) {
-      // Capture the image
-      final XFile? picture = await _cameraController!.takePicture();
+    // Get the directory to save the image
+    final Directory directory = await getApplicationDocumentsDirectory();
+    final String path =
+        '${directory.path}/${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-      if (picture != null) {
-        // Get the directory to save the image
-        final Directory directory = await getApplicationDocumentsDirectory();
-        final String path =
-            '${directory.path}/${DateTime.now().millisecondsSinceEpoch}.jpg';
+    // Load the captured image
+    final Uint8List imageBytes = await imageFile.readAsBytes();
 
-        // Load the captured image
-        final File file = File(picture.path);
-        final Uint8List imageBytes = await file.readAsBytes();
+    // Add watermark
+    final Uint8List watermarkedBytes = _addWatermark(
+      // Call the existing private method
+      imageBytes: imageBytes,
+      note: note,
+      latitude: latitude,
+      longitude: longitude,
+      plusCode: plusCode,
+      tabHeader: tabHeader,
+      address_complete: address_complete,
+    );
 
-        // Add watermark
-        final Uint8List watermarkedBytes = _addWatermark(
-          imageBytes: imageBytes,
-          note: note,
-          latitude: latitude,
-          longitude: longitude,
-          plusCode: plusCode,
-          tabHeader: tabHeader,
-          address_complete: address_complete,
-        );
+    // Save the watermarked image
+    final File newFile = File(path);
+    await newFile.writeAsBytes(watermarkedBytes);
 
-        // Save the watermarked image
-        final File newFile = File(path);
-        await newFile.writeAsBytes(watermarkedBytes);
+    // Optionally, add the image to the gallery
+    await ImageGallerySaverPlus.saveFile(newFile.path);
 
-        // Optionally, add the image to the gallery
-        await ImageGallerySaverPlus.saveFile(newFile.path);
-
-        // Return the path of the saved image
-        return newFile;
-      }
-    }
-    return null;
+    // Return the path of the saved image
+    return newFile;
   }
+
+  // Capture an image and save it to the device
+  Future<File?> captureImage({
+  required String note,
+  required double latitude,
+  required double longitude,
+  required String plusCode,
+  required String tabHeader,
+  required String address_complete,
+}) async {
+  if (_cameraController != null && _cameraController!.value.isInitialized) {
+    final XFile? picture = await _cameraController!.takePicture();
+
+    if (picture != null) {
+      final File file = File(picture.path);
+      // Call the new method here
+      return addWatermarkAndSave(
+        imageFile: file,
+        note: note,
+        latitude: latitude,
+        longitude: longitude,
+        plusCode: plusCode,
+        tabHeader: tabHeader,
+        address_complete: address_complete,
+      );
+    }
+  }
+  return null;
+}
 
   // Add watermark to the image
   Uint8List _addWatermark({

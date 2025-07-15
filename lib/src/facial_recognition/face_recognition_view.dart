@@ -45,13 +45,13 @@ class _FaceRecognitionViewState extends State<FaceRecognitionView> {
   }
 
   /// Navigate back with result
-  void _navigateBack(bool result) {
+  void _navigateBack(bool result, {File? imageFile}) {
     if (!_hasNavigated) {
       _hasNavigated = true;
       // Dispose camera before navigating
       _cameraController?.dispose();
       // Use Get.back with closeOverlays to ensure all overlays are closed
-      Get.back(result: result, closeOverlays: true);
+      Get.back(result: imageFile, closeOverlays: true);
     }
   }
 
@@ -148,7 +148,7 @@ class _FaceRecognitionViewState extends State<FaceRecognitionView> {
         
         // Wait a bit for the message to show, then navigate
         await Future.delayed(const Duration(milliseconds: 300));
-        _navigateBack(true);
+        _navigateBack(true, imageFile: imageFile);
       } else {
         // Show error message
         ScaffoldMessenger.of(context).showSnackBar(

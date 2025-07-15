@@ -62,8 +62,27 @@ class _HomeViewState extends State<HomeView>
   };
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final controller = homeController.cameraController;
+
+    // If the controller is null or not initialized, do nothing.
+    if (controller == null || !controller.value.isInitialized) {
+      return;
+    }
+
+    if (state == AppLifecycleState.inactive) {
+      // App is inactive, dispose of the camera.
+      homeController.disposeCamera();
+    } else if (state == AppLifecycleState.resumed) {
+      // App is resumed, re-initialize the camera.
+      homeController.initializeCamera();
+    }
+  }
+
+  @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Initialize TabController with regular tabs
     _tabController =
         TabController(length: regularTabs.length, vsync: this, initialIndex: 1);
@@ -175,6 +194,7 @@ class _HomeViewState extends State<HomeView>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _tabController.removeListener(_handleTabSelection);
     _tabController.dispose();
     homeController.dispose();
@@ -296,13 +316,14 @@ class _HomeViewState extends State<HomeView>
                       SizedBox(
                         height: height,
                         width: width,
-                        child: homeController.selectedCameraIndex == 0
-                            ? CameraPreview(homeController.cameraController!)
-                            : Transform(
-                                alignment: Alignment.center,
-                                transform: Matrix4.identity()..rotateY(math.pi),
-                                child: CameraPreview(
-                                    homeController.cameraController!)),
+                        // child: homeController.selectedCameraIndex == 0
+                        //     ? CameraPreview(homeController.cameraController!)
+                        //     : Transform(
+                        //         alignment: Alignment.center,
+                        //         transform: Matrix4.identity()..rotateY(math.pi),
+                        //         child: CameraPreview(
+                        //             homeController.cameraController!)),
+                        child: CameraPreview(homeController.cameraController!),
                       ),
                       if (_tabController.index == 0)
                         Positioned(

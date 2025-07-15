@@ -65,157 +65,136 @@ class HomeController extends GetxController {
   }
 
   Future<void> captureAndUpload({
-    required String note,
-    required String attendanceType,
-    required double latitude,
-    required double longitude,
-    required String plusCode,
-    required String tabHeader,
-    required String address_complete,
-  }) async {
-    try {
-      isLoading.value = true;
+  required String note,
+  required String attendanceType,
+  required double latitude,
+  required double longitude,
+  required String plusCode,
+  required String tabHeader,
+  required String address_complete,
+}) async {
+  try {
+    isLoading.value = true;
 
-      Get.snackbar(
-        'Processing',
-        'Starting face verification...',
-        duration: const Duration(seconds: 1),
-        snackPosition: SnackPosition.BOTTOM,
-      );
+    Get.snackbar(
+      'Processing',
+      'Starting face verification...',
+      duration: const Duration(seconds: 1),
+      snackPosition: SnackPosition.BOTTOM,
+    );
 
-      // Navigate to face recognition and wait for result
-      final bool? isVerified = await Get.to<bool>(
-        () => const FaceRecognitionView(),
-        transition: Transition.rightToLeft,
-        duration: const Duration(milliseconds: 300),
-      );
+    // Navigate to face recognition and wait for an image file
+    final File? imageFromVerification = await Get.to<File?>(
+      () => const FaceRecognitionView(),
+      transition: Transition.rightToLeft,
+      duration: const Duration(milliseconds: 300),
+    );
 
-      // Check if verification was successful
-      if (isVerified != true) {
-        isLoading.value = false;
-        Get.snackbar(
-          'Cancelled',
-          'Face verification failed or was cancelled.',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM,
-          duration: const Duration(seconds: 2),
-        );
-        return;
-      }
-
-      // Face verification successful - continue with attendance recording
-      Get.snackbar(
-        'Processing',
-        'Recording attendance...',
-        duration: const Duration(seconds: 1),
-        snackPosition: SnackPosition.BOTTOM,
-      );
-
-      // IMPORTANT: Camera management after face recognition
-      debugPrint('Reinitializing camera after face recognition...');
-
-      // Add delay to ensure face recognition camera is fully released
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Dispose current camera if any
-      disposeCamera();
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      // Reinitialize camera
-      await initializeCamera();
-      await Future.delayed(
-          const Duration(milliseconds: 1000)); // Extra delay for stability
-
-      // Verify camera is ready
-      if (cameraController == null || !cameraController!.value.isInitialized) {
-        // Try one more time
-        debugPrint('Camera not ready, trying again...');
-        await initializeCamera();
-        await Future.delayed(const Duration(milliseconds: 1000));
-
-        if (cameraController == null ||
-            !cameraController!.value.isInitialized) {
-          throw Exception('Camera failed to initialize after face recognition');
-        }
-      }
-
-      debugPrint('Camera ready, capturing attendance image...');
-
-      // Now capture the attendance image with overlays
-      final modifiedImage = await _homeService.captureImage(
-        note: note,
-        latitude: latitude,
-        longitude: longitude,
-        plusCode: plusCode,
-        tabHeader: tabHeader,
-        address_complete: address_complete,
-      );
-
-      if (modifiedImage == null) {
-        isLoading.value = false;
-        Get.snackbar(
-          'Error',
-          'Failed to capture attendance image',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM,
-        );
-        return;
-      }
-
-      // Show capture success
-      Fluttertoast.showToast(msg: 'Image captured!');
-
-      // Save to database
-      final dataInDatabase = await _homeService.uploadToDatabase(data: {
-        'note': note,
-        'attendance_type': attendanceType,
-        'long_lat': '$latitude, $longitude',
-        'address': plusCode,
-        'address_complete': address_complete,
-      });
-
-      // Schedule background upload
-      await Workmanager().registerOneOffTask(
-        'uniqueName_${DateTime.now().millisecondsSinceEpoch}',
-        'uploadTask',
-        constraints: Constraints(networkType: NetworkType.connected),
-        inputData: {
-          'id': dataInDatabase,
-          'filePath': modifiedImage.path,
-        },
-      );
-
-      // Success
-      debugPrint("Attendance recorded successfully!");
+    // Check if verification was successful and an image was returned
+    if (imageFromVerification == null) {
       isLoading.value = false;
-
       Get.snackbar(
-        'Success',
-        'Attendance recorded successfully!',
-        backgroundColor: Colors.green,
+        'Cancelled',
+        'Face verification failed or was cancelled.',
+        backgroundColor: Colors.red,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
         duration: const Duration(seconds: 2),
       );
+      // IMPORTANT: Reinitialize camera if user cancels so they can try again.
+      await initializeCamera();
+      return;
+    }
 
-      // Navigate to DTR logs
-      await Future.delayed(const Duration(milliseconds: 300));
-      Get.toNamed(DtrLogsView.routeName);
-    } catch (e) {
+    // Face verification successful - continue with attendance recording
+    Get.snackbar(
+      'Processing',
+      'Recording attendance...',
+      duration: const Duration(seconds: 1),
+      snackPosition: SnackPosition.BOTTOM,
+    );
+
+    // Now add the watermark to the image received from face verification
+    final modifiedImage = await _homeService.addWatermarkAndSave(
+      imageFile: imageFromVerification,
+      note: note,
+      latitude: latitude,
+      longitude: longitude,
+      plusCode: plusCode,
+      tabHeader: tabHeader,
+      address_complete: address_complete,
+    );
+
+    if (modifiedImage == null) {
       isLoading.value = false;
-      debugPrint('Error in captureAndUpload: $e');
       Get.snackbar(
         'Error',
-        'An error occurred: ${e.toString()}',
+        'Failed to process attendance image',
         backgroundColor: Colors.red,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 3),
       );
+      return;
     }
+
+    // Show capture success
+    Fluttertoast.showToast(msg: 'Image captured!');
+
+    // Save to database
+    final dataInDatabase = await _homeService.uploadToDatabase(data: {
+      'note': note,
+      'attendance_type': attendanceType,
+      'long_lat': '$latitude, $longitude',
+      'address': plusCode,
+      'address_complete': address_complete,
+    });
+
+    // Schedule background upload
+    await Workmanager().registerOneOffTask(
+      'uniqueName_${DateTime.now().millisecondsSinceEpoch}',
+      'uploadTask',
+      constraints: Constraints(networkType: NetworkType.connected),
+      inputData: {
+        'id': dataInDatabase,
+        'filePath': modifiedImage.path,
+      },
+    );
+
+    // Success
+    debugPrint("Attendance recorded successfully!");
+    isLoading.value = false;
+
+    Get.snackbar(
+      'Success',
+      'Attendance recorded successfully!',
+      backgroundColor: Colors.green,
+      colorText: Colors.white,
+      snackPosition: SnackPosition.BOTTOM,
+      duration: const Duration(seconds: 2),
+    );
+    
+    // Re-initialize the camera for the next use
+    await initializeCamera();
+
+    // Navigate to DTR logs
+    await Future.delayed(const Duration(milliseconds: 300));
+    //Get.toNamed(DtrLogsView.routeName);
+    Get.offAllNamed(DtrLogsView.routeName);
+  } catch (e) {
+    isLoading.value = false;
+    debugPrint('Error in captureAndUpload: $e');
+    Get.snackbar(
+      'Error',
+      'An error occurred: ${e.toString()}',
+      backgroundColor: Colors.red,
+      colorText: Colors.white,
+      snackPosition: SnackPosition.BOTTOM,
+      duration: const Duration(seconds: 3),
+    );
+    // Ensure camera is re-initialized on error
+    await initializeCamera();
   }
+}
 
   // Method to switch between cameras
   Future<void> switchCamera() async {
