@@ -58,8 +58,12 @@ class LocationService {
 
       if (data['status'] == 'OK' && data['results'] != null) {
         print('Address: ${data['results'][0]}');
-        return data['results'][0]['plus_code']['compound_code'] ??
-            data['results'][0]['plus_code'];
+        for (var result in data['results']) {
+          if (result['plus_code'] != null && result['plus_code']['compound_code'] != null) {
+            return result['plus_code']['compound_code'];
+          }
+        }
+        return 'Failed to fetch plus_code';
       } else {
         return 'Failed to fetch address';
       }

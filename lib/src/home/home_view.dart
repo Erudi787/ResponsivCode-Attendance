@@ -144,6 +144,18 @@ class _HomeViewState extends State<HomeView>
       return;
     }
 
+    // final locationData = await locationController.fetchLocation();
+
+    // if (mounted) {
+    //   setState(() {
+    //     plusCode = locationData['plusCode'] ?? 'Failed to fetch plus_code';
+    //     address_complete =
+    //         locationData['address_complete'] ?? 'Failed to fetch address';
+    //     longitude = locationData['longitude'] ?? 0.0;
+    //     latitude = locationData['latitude'] ?? 0.0;
+    //   });
+    // }
+
     Position position = await Geolocator.getCurrentPosition(
       locationSettings:
           const LocationSettings(accuracy: LocationAccuracy.bestForNavigation),
@@ -408,24 +420,55 @@ class _HomeViewState extends State<HomeView>
                                                     false;
 
                                                 if (!isEnabled) {
-                                                  if (attendanceType ==
-                                                          'ot_in' ||
-                                                      attendanceType ==
-                                                          'ot_out') {
-                                                    Fluttertoast.showToast(
-                                                      msg:
-                                                          "You must time out first before logging overtime.",
-                                                      gravity:
-                                                          ToastGravity.CENTER,
-                                                    );
-                                                  } else {
-                                                    Fluttertoast.showToast(
-                                                      msg:
-                                                          "You have already completed this action for today.",
-                                                      gravity:
-                                                          ToastGravity.CENTER,
-                                                    );
+                                                  // if (attendanceType ==
+                                                  //         'ot_in' ||
+                                                  //     attendanceType ==
+                                                  //         'ot_out') {
+                                                  //   Fluttertoast.showToast(
+                                                  //     msg:
+                                                  //         "You must time out first before logging overtime.",
+                                                  //     gravity:
+                                                  //         ToastGravity.CENTER,
+                                                  //   );
+                                                  // } else {
+                                                  //   Fluttertoast.showToast(
+                                                  //     msg:
+                                                  //         "You have already completed this action for today.",
+                                                  //     gravity:
+                                                  //         ToastGravity.CENTER,
+                                                  //   );
+                                                  // }
+                                                  String message;
+                                                  switch (attendanceType) {
+                                                    case 'break_out':
+                                                      message =
+                                                          "You must time in first before breaking out.";
+                                                      break;
+                                                    case 'break_in':
+                                                      message =
+                                                          "You must break out first before breaking in.";
+                                                      break;
+                                                    case 'time_out':
+                                                      message =
+                                                          "You must break in first before timing out.";
+                                                      break;
+                                                    case 'ot_in':
+                                                      message =
+                                                          "You must time out first before logging overtime.";
+                                                      break;
+                                                    case 'ot_out':
+                                                      message =
+                                                          "You must log overtime in first before logging out.";
+                                                      break;
+                                                    default:
+                                                      message =
+                                                          "You have already completed this action for today.";
                                                   }
+                                                  Fluttertoast.showToast(
+                                                    msg: message,
+                                                    gravity:
+                                                        ToastGravity.CENTER,
+                                                  );
                                                   return;
                                                 }
 
