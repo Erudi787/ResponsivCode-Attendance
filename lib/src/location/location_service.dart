@@ -37,13 +37,20 @@ class LocationService {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
 
-      if (data['status'] == 'OK' && data['results'] != null) {
-        return data['results'][0]['plus_code']['compound_code'] ??
-            data['results'][0]['plus_code'];
-      } else {
-        return 'Failed to fetch plus_code';
+      if (data['status'] == 'OK' &&
+          data['results'] != null &&
+          data['results'].isNotEmpty) {
+        // Iterate through all results to find one with a plus code
+        for (var result in data['results']) {
+          // Safely check if 'plus_code' and 'compound_code' exist
+          if (result['plus_code'] != null &&
+              result['plus_code']['compound_code'] != null) {
+            return result['plus_code']['compound_code'];
+          }
+        }
       }
     }
+    // Return null if no plus code is found in any result
     return null;
   }
 
@@ -59,7 +66,8 @@ class LocationService {
       if (data['status'] == 'OK' && data['results'] != null) {
         print('Address: ${data['results'][0]}');
         for (var result in data['results']) {
-          if (result['plus_code'] != null && result['plus_code']['compound_code'] != null) {
+          if (result['plus_code'] != null &&
+              result['plus_code']['compound_code'] != null) {
             return result['plus_code']['compound_code'];
           }
         }

@@ -144,63 +144,63 @@ class _HomeViewState extends State<HomeView>
       return;
     }
 
-    // final locationData = await locationController.fetchLocation();
+    final locationData = await locationController.fetchLocation();
 
-    // if (mounted) {
-    //   setState(() {
-    //     plusCode = locationData['plusCode'] ?? 'Failed to fetch plus_code';
-    //     address_complete =
-    //         locationData['address_complete'] ?? 'Failed to fetch address';
-    //     longitude = locationData['longitude'] ?? 0.0;
-    //     latitude = locationData['latitude'] ?? 0.0;
-    //   });
-    // }
+    if (mounted) {
+      setState(() {
+        plusCode = locationData['plusCode'] ?? 'Failed to fetch plus_code';
+        address_complete =
+            locationData['address_complete'] ?? 'Failed to fetch address';
+        longitude = locationData['longitude'] ?? 0.0;
+        latitude = locationData['latitude'] ?? 0.0;
+      });
+    }
 
-    Position position = await Geolocator.getCurrentPosition(
-      locationSettings:
-          const LocationSettings(accuracy: LocationAccuracy.bestForNavigation),
-    );
+    // Position position = await Geolocator.getCurrentPosition(
+    //   locationSettings:
+    //       const LocationSettings(accuracy: LocationAccuracy.bestForNavigation),
+    // );
 
     // Use Google Maps Geocoding API
-    try {
-      final address = await _getAddressFromLatLng(
-        position.latitude,
-        position.longitude,
-        'AIzaSyCK0P_803SLSiBa663Sw44-njG-ehwPTrg', // Replace with your API key
-      );
+    // try {
+    //   final address = await _getAddressFromLatLng(
+    //     position.latitude,
+    //     position.longitude,
+    //     'AIzaSyCK0P_803SLSiBa663Sw44-njG-ehwPTrg', // Replace with your API key
+    //   );
 
-      if (mounted) {
-        setState(() {
-          plusCode = address?['plus_code'] ?? 'Failed to fetch plus_code';
-          address_complete = address?['address'] ?? 'Failed to fetch address';
-          longitude = position.longitude;
-          latitude = position.latitude;
-        });
-      }
-    } catch (e) {
-      print('Error fetching address: $e');
-    }
+    //   if (mounted) {
+    //     setState(() {
+    //       plusCode = address?['plus_code'] ?? 'Failed to fetch plus_code';
+    //       address_complete = address?['address'] ?? 'Failed to fetch address';
+    //       longitude = position.longitude;
+    //       latitude = position.latitude;
+    //     });
+    //   }
+    // } catch (e) {
+    //   print('Error fetching address: $e');
+    // }
   }
 
-  Future<Map<String, String>?> _getAddressFromLatLng(
-      double lat, double lng, String apiKey) async {
-    final url =
-        'https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$lng&key=$apiKey';
+  // Future<Map<String, String>?> _getAddressFromLatLng(
+  //     double lat, double lng, String apiKey) async {
+  //   final url =
+  //       'https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$lng&key=$apiKey';
 
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
+  //   final response = await http.get(Uri.parse(url));
+  //   if (response.statusCode == 200) {
+  //     final data = jsonDecode(response.body);
 
-      if (data['status'] == 'OK' && data['results'][0] != null) {
-        return {
-          "plus_code":
-              data['results'][0]['plus_code']?['compound_code'] ?? "N/A",
-          "address": data['results'][0]['formatted_address'] ?? "N/A"
-        };
-      }
-    }
-    return null;
-  }
+  //     if (data['status'] == 'OK' && data['results'][0] != null) {
+  //       return {
+  //         "plus_code":
+  //             data['results'][0]['plus_code']?['compound_code'] ?? "N/A",
+  //         "address": data['results'][0]['formatted_address'] ?? "N/A"
+  //       };
+  //     }
+  //   }
+  //   return null;
+  // }
 
   @override
   void dispose() {
@@ -413,79 +413,102 @@ class _HomeViewState extends State<HomeView>
                                             )
                                           : GestureDetector(
                                               onTap: () async {
-                                                final isEnabled = homeController
-                                                        .tabAvailability[
-                                                            attendanceType]
-                                                        ?.value ??
-                                                    false;
+                                                try {
+                                                  final isEnabled =
+                                                      homeController
+                                                              .tabAvailability[
+                                                                  attendanceType]
+                                                              ?.value ??
+                                                          false;
 
-                                                if (!isEnabled) {
-                                                  // if (attendanceType ==
-                                                  //         'ot_in' ||
-                                                  //     attendanceType ==
-                                                  //         'ot_out') {
-                                                  //   Fluttertoast.showToast(
-                                                  //     msg:
-                                                  //         "You must time out first before logging overtime.",
-                                                  //     gravity:
-                                                  //         ToastGravity.CENTER,
-                                                  //   );
-                                                  // } else {
-                                                  //   Fluttertoast.showToast(
-                                                  //     msg:
-                                                  //         "You have already completed this action for today.",
-                                                  //     gravity:
-                                                  //         ToastGravity.CENTER,
-                                                  //   );
-                                                  // }
-                                                  String message;
-                                                  switch (attendanceType) {
-                                                    case 'break_out':
-                                                      message =
-                                                          "You must time in first before breaking out.";
-                                                      break;
-                                                    case 'break_in':
-                                                      message =
-                                                          "You must break out first before breaking in.";
-                                                      break;
-                                                    case 'time_out':
-                                                      message =
-                                                          "You must break in first before timing out.";
-                                                      break;
-                                                    case 'ot_in':
-                                                      message =
-                                                          "You must time out first before logging overtime.";
-                                                      break;
-                                                    case 'ot_out':
-                                                      message =
-                                                          "You must log overtime in first before logging out.";
-                                                      break;
-                                                    default:
-                                                      message =
-                                                          "You have already completed this action for today.";
+                                                  if (!isEnabled) {
+                                                    // if (attendanceType ==
+                                                    //         'ot_in' ||
+                                                    //     attendanceType ==
+                                                    //         'ot_out') {
+                                                    //   Fluttertoast.showToast(
+                                                    //     msg:
+                                                    //         "You must time out first before logging overtime.",
+                                                    //     gravity:
+                                                    //         ToastGravity.CENTER,
+                                                    //   );
+                                                    // } else {
+                                                    //   Fluttertoast.showToast(
+                                                    //     msg:
+                                                    //         "You have already completed this action for today.",
+                                                    //     gravity:
+                                                    //         ToastGravity.CENTER,
+                                                    //   );
+                                                    // }
+                                                    String message;
+                                                    switch (attendanceType) {
+                                                      case 'break_out':
+                                                        message =
+                                                            "You must time in first before breaking out.";
+                                                        break;
+                                                      case 'break_in':
+                                                        message =
+                                                            "You must break out first before breaking in.";
+                                                        break;
+                                                      case 'time_out':
+                                                        message =
+                                                            "You must break in first before timing out.";
+                                                        break;
+                                                      case 'ot_in':
+                                                        message =
+                                                            "You must time out first before logging overtime.";
+                                                        break;
+                                                      case 'ot_out':
+                                                        message =
+                                                            "You must log overtime in first before logging out.";
+                                                        break;
+                                                      default:
+                                                        message =
+                                                            "You have already completed this action for today.";
+                                                    }
+                                                    Fluttertoast.showToast(
+                                                      msg: message,
+                                                      gravity:
+                                                          ToastGravity.CENTER,
+                                                    );
+                                                    return;
                                                   }
-                                                  Fluttertoast.showToast(
-                                                    msg: message,
-                                                    gravity:
-                                                        ToastGravity.CENTER,
-                                                  );
-                                                  return;
-                                                }
 
-                                                await _determinePosition();
+                                                  await _determinePosition();
 
-                                                if (plusCode.isEmpty ||
-                                                    address_complete.isEmpty) {
-                                                  Fluttertoast.showToast(
-                                                      msg:
-                                                          "Could not get location. Please try again.");
-                                                  return;
-                                                }
+                                                  if (plusCode
+                                                          .contains('Failed') ||
+                                                      address_complete
+                                                          .contains('Failed')) {
+                                                    Fluttertoast.showToast(
+                                                        msg:
+                                                            "Could not get location. Please try again.",
+                                                        gravity: ToastGravity
+                                                            .CENTER);
+                                                    return;
+                                                  }
 
-                                                if (attendanceType ==
-                                                    'documentary') {
-                                                  if (_formKey.currentState!
-                                                      .validate()) {
+                                                  if (attendanceType ==
+                                                      'documentary') {
+                                                    if (_formKey.currentState!
+                                                        .validate()) {
+                                                      await homeController
+                                                          .captureAndUpload(
+                                                        note: noteController
+                                                            .text
+                                                            .trim(),
+                                                        attendanceType:
+                                                            attendanceType,
+                                                        latitude: latitude,
+                                                        longitude: longitude,
+                                                        plusCode: plusCode,
+                                                        tabHeader: tabHeaderKey,
+                                                        address_complete:
+                                                            address_complete,
+                                                      );
+                                                      noteController.clear();
+                                                    }
+                                                  } else {
                                                     await homeController
                                                         .captureAndUpload(
                                                       note: noteController.text
@@ -501,21 +524,15 @@ class _HomeViewState extends State<HomeView>
                                                     );
                                                     noteController.clear();
                                                   }
-                                                } else {
-                                                  await homeController
-                                                      .captureAndUpload(
-                                                    note: noteController.text
-                                                        .trim(),
-                                                    attendanceType:
-                                                        attendanceType,
-                                                    latitude: latitude,
-                                                    longitude: longitude,
-                                                    plusCode: plusCode,
-                                                    tabHeader: tabHeaderKey,
-                                                    address_complete:
-                                                        address_complete,
+                                                } catch (e) {
+                                                  Get.snackbar(
+                                                    "Error",
+                                                    "An unexpected error occurred: ${e.toString()}",
+                                                    backgroundColor: Colors.red,
+                                                    colorText: Colors.white,
+                                                    snackPosition:
+                                                        SnackPosition.BOTTOM,
                                                   );
-                                                  noteController.clear();
                                                 }
                                               },
                                               child: Stack(
