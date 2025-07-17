@@ -92,8 +92,10 @@ class HomeController extends GetxController {
     final hasBreakOut = log.breakOut != null && log.breakOut!.isNotEmpty;
     final hasBreakIn = log.breakIn != null && log.breakIn!.isNotEmpty;
     final hasTimeOut = log.timeOut != null && log.timeOut!.isNotEmpty;
-    final hasOtIn = otLog?.otIn != null && otLog!.otIn!.isNotEmpty;
-    final hasOtOut = otLog?.otOut != null && otLog!.otOut!.isNotEmpty;
+    final hasOtIn =
+        otLog != null && otLog.otIn != null && otLog.otIn!.isNotEmpty;
+    final hasOtOut =
+        otLog != null && otLog.otOut != null && otLog.otOut!.isNotEmpty;
 
     tabAvailability['time_in']?.value = !hasTimeIn;
     tabAvailability['break_out']?.value = hasTimeIn && !hasBreakOut;
@@ -128,7 +130,7 @@ class HomeController extends GetxController {
         isLoading.value = false;
         return;
       }
-      
+
       if (cameraController == null || !cameraController!.value.isInitialized) {
         Get.snackbar('Error', 'Camera is not available.',
             backgroundColor: Colors.red, colorText: Colors.white);
@@ -202,7 +204,7 @@ class HomeController extends GetxController {
         tabHeader: tabHeader,
         address_complete: address_complete,
       );
-      
+
       if (modifiedImage == null) {
         isLoading.value = false;
         Get.snackbar(
@@ -246,13 +248,12 @@ class HomeController extends GetxController {
       );
 
       await checkAttendanceStatus(); // Re-check status after an action
-      
+
       // --- FIX: Removed the navigation call that was causing the camera to dispose ---
       if (attendanceType == 'documentary') {
-        Get.offAllNamed(DtrLogsView.routeName);
+        Get.toNamed(DtrLogsView.routeName);
       }
       // No 'else' block needed, as we want to stay on the HomeView.
-
     } catch (e) {
       isLoading.value = false;
       debugPrint('Error in captureAndUpload: $e');
