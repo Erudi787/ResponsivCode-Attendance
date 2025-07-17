@@ -106,7 +106,7 @@ class HomeController extends GetxController {
   }) async {
     try {
       isLoading.value = true;
-      File? modifiedImage;
+      File? imageToProcess;
       final personName = box.read('fullname') as String?;
 
       if (personName == null) {
@@ -116,23 +116,23 @@ class HomeController extends GetxController {
         return;
       }
 
-      // --- Unified Face Verification and Capture Logic ---
+      // --- Step 1: Face Verification (if required) ---
       if (attendanceType != 'documentary') {
-        // For all types except 'documentary', perform face verification first
-        Get.snackbar(
-          'Processing',
-          'Verifying face...',
-          duration: const Duration(seconds: 2),
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        Get.snackbar('Processing', 'Verifying face...',
+            duration: const Duration(seconds: 2),
+            snackPosition: SnackPosition.BOTTOM);
+
         final XFile? imageXFile = await cameraController?.takePicture();
         if (imageXFile == null) {
           isLoading.value = false;
+          Get.snackbar('Error', 'Failed to capture image for verification.',
+              backgroundColor: Colors.red, colorText: Colors.white);
           return;
         }
-        final File imageFile = File(imageXFile.path);
+
+        final File verificationImage = File(imageXFile.path);
         final bool isVerified =
-            await _faceController.verifyFace(imageFile, personName);
+            await _faceController.verifyFace(verificationImage, personName);
 
         if (!isVerified) {
           Get.snackbar(
@@ -146,12 +146,28 @@ class HomeController extends GetxController {
           isLoading.value = false;
           return;
         }
-        // If verification is successful, use this image
-        modifiedImage = imageFile;
+
+        // If verification is successful, use this image for the next steps
+        imageToProcess = verificationImage;
+        Get.snackbar('Success', 'Face verified successfully!',
+            backgroundColor: Colors.green,
+            colorText: Colors.white,
+            duration: const Duration(seconds: 2));
+      } else {
+        // --- Step 2a: Capture Image for Documentary ---
+        final XFile? imageXFile = await cameraController?.takePicture();
+        if (imageXFile == null) {
+          isLoading.value = false;
+          Get.snackbar('Error', 'Failed to capture documentary image.',
+              backgroundColor: Colors.red, colorText: Colors.white);
+          return;
+        }
+        imageToProcess = File(imageXFile.path);
       }
 
-      // Capture image (handles both documentary and verified images)
-      modifiedImage ??= await _homeService.captureImage(
+      // --- Step 3: Add Watermark ---
+      final File? watermarkedImage = await _homeService.addWatermarkAndSave(
+        imageFile: imageToProcess!,
         note: note,
         latitude: latitude,
         longitude: longitude,
@@ -160,44 +176,16 @@ class HomeController extends GetxController {
         address_complete: address_complete,
       );
 
-      if (modifiedImage == null) {
+      if (watermarkedImage == null) {
         isLoading.value = false;
-        Get.snackbar(
-          'Error',
-          'Failed to capture image.',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        Get.snackbar('Error', 'Failed to process image with watermark.',
+            backgroundColor: Colors.red, colorText: Colors.white);
         return;
       }
 
-      // Add watermark to the verified or captured image
-      modifiedImage = await _homeService.addWatermarkAndSave(
-        imageFile: modifiedImage,
-        note: note,
-        latitude: latitude,
-        longitude: longitude,
-        plusCode: plusCode,
-        tabHeader: tabHeader,
-        address_complete: address_complete,
-      );
+      Fluttertoast.showToast(msg: 'Image processed, preparing upload.');
 
-      // --- FIX: Add a null check after watermarking ---
-      if (modifiedImage == null) {
-        isLoading.value = false;
-        Get.snackbar(
-          'Error',
-          'Failed to process image with watermark.',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM,
-        );
-        return;
-      }
-
-      Fluttertoast.showToast(msg: 'Image processed successfully!');
-
+      // --- Step 4: Upload to Database and Schedule Background Upload ---
       final dataInDatabase = await _homeService.uploadToDatabase(data: {
         'note': note,
         'attendance_type': attendanceType,
@@ -212,21 +200,21 @@ class HomeController extends GetxController {
         constraints: Constraints(networkType: NetworkType.connected),
         inputData: {
           'id': dataInDatabase,
-          'filePath': modifiedImage.path, // This is now safe
+          'filePath': watermarkedImage.path,
         },
       );
 
       isLoading.value = false;
       Get.snackbar(
         'Success',
-        'Attendance recorded successfully!',
+        'Attendance recorded! Uploading in background.',
         backgroundColor: Colors.green,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 2),
+        duration: const Duration(seconds: 3),
       );
 
-      await checkAttendanceStatus(); // Re-check status after an action
+      await checkAttendanceStatus();
       if (attendanceType == 'documentary') {
         Get.offAllNamed(DtrLogsView.routeName);
       } else {
@@ -237,7 +225,7 @@ class HomeController extends GetxController {
       debugPrint('Error in captureAndUpload: $e');
       Get.snackbar(
         'Error',
-        'An error occurred: ${e.toString()}',
+        'An unexpected error occurred: ${e.toString()}',
         backgroundColor: Colors.red,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
