@@ -16,16 +16,13 @@ class FacialRecognitionController extends GetxController {
       Get.find<FaceRecognitionService>();
   final FaceDataManager _dataManager = Get.find<FaceDataManager>();
 
-  // --- Observable State ---
   final RxBool isLoading = false.obs;
   final Rxn<String> recognitionResult = Rxn<String>();
   final RxDouble bestMatchDistance = (0.0).obs;
 
-  /// The confidence threshold for detecting a face in an image.
   static const double _faceDetectionConfidence = 0.95;
-
   static const double _recognitionThreshold =
-      0.8; // Lowered from 1.0 to make it stricter
+      0.8;
 
   Future<bool> verifyFace(File imageFile, String personName) async {
     isLoading.value = true;

@@ -1,3 +1,5 @@
+// lib/src/facial_recognition/live_registration_view.dart
+
 import 'dart:async';
 import 'dart:io';
 
@@ -7,7 +9,7 @@ import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:rts_locator/src/facial_recognition/face_data_manager.dart';
 import 'package:rts_locator/src/facial_recognition/facial_recognition_service.dart';
-import 'package:rts_locator/src/home/home_view.dart';
+import 'package:rts_locator/src/splash/splash_view.dart';
 
 /// A screen that guides the user through a live face registration process.
 ///
@@ -56,7 +58,7 @@ class _LiveRegistrationViewState extends State<LiveRegistrationView> {
     super.initState();
     _initialize();
   }
-  
+
   /// Initializes both the camera and the face recognition service.
   Future<void> _initialize() async {
     await _faceService.initialize();
@@ -189,7 +191,7 @@ class _LiveRegistrationViewState extends State<LiveRegistrationView> {
     // Navigate to the home screen after successful registration
     //Navigator.of(context).pushReplacementNamed(HomeView.routeName);
     await _cameraController?.dispose();
-    Get.offAllNamed(HomeView.routeName);
+    Get.offAllNamed(SplashView.routeName);
   }
 
   @override

@@ -12,6 +12,7 @@ import 'package:rts_locator/src/dtr_logs/view/dtr_logs_view.dart';
 import 'package:rts_locator/src/facial_recognition/face_recognition_view.dart';
 import 'package:rts_locator/src/location/location_controller.dart';
 import 'package:rts_locator/src/location/location_service.dart';
+import 'package:rts_locator/src/splash/splash_view.dart';
 import 'package:workmanager/workmanager.dart';
 import 'home_service.dart';
 
@@ -237,7 +238,11 @@ class HomeController extends GetxController {
       );
 
       await checkAttendanceStatus(); // Re-check status after an action
-      Get.offAllNamed(DtrLogsView.routeName);
+      if (attendanceType == 'documentary') {
+        Get.offAllNamed(DtrLogsView.routeName);
+      } else {
+        Get.offAllNamed(SplashView.routeName);
+      }
     } catch (e) {
       isLoading.value = false;
       debugPrint('Error in captureAndUpload: $e');
