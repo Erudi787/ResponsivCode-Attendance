@@ -408,12 +408,24 @@ class _HomeViewState extends State<HomeView>
                                                     false;
 
                                                 if (!isEnabled) {
-                                                  Fluttertoast.showToast(
-                                                    msg:
-                                                        "You have already completed this action for today.",
-                                                    gravity:
-                                                        ToastGravity.CENTER,
-                                                  );
+                                                  if (attendanceType ==
+                                                          'ot_in' ||
+                                                      attendanceType ==
+                                                          'ot_out') {
+                                                    Fluttertoast.showToast(
+                                                      msg:
+                                                          "You must time out first before logging overtime.",
+                                                      gravity:
+                                                          ToastGravity.CENTER,
+                                                    );
+                                                  } else {
+                                                    Fluttertoast.showToast(
+                                                      msg:
+                                                          "You have already completed this action for today.",
+                                                      gravity:
+                                                          ToastGravity.CENTER,
+                                                    );
+                                                  }
                                                   return;
                                                 }
 
