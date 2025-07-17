@@ -6,7 +6,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'package:rts_locator/src/dtr_logs/view/dtr_logs_view.dart';
 // --- Add these imports for the new views ---
-import 'package:rts_locator/src/facial_recognition/face_recognition_view.dart';
 import 'package:rts_locator/src/facial_recognition/live_registration_view.dart';
 // --- End of new imports ---
 import 'package:rts_locator/src/home/home_view.dart';
@@ -119,11 +118,8 @@ class MyApp extends StatelessWidget {
               page: () =>
                   LiveRegistrationView(personName: Get.arguments as String),
             ),
-            GetPage(
-              name: FaceRecognitionView.routeName,
-              page: () => const FaceRecognitionView(),
-            ),
-            // -----------------------------
+            // --- FaceRecognitionView route is removed ---
+            // ---------------------------------------------
           ],
           initialRoute: SplashView.routeName,
         );

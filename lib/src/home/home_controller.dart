@@ -9,7 +9,7 @@ import 'package:get_storage/get_storage.dart';
 import 'package:rts_locator/src/dtr_logs/model/time_logs_model.dart';
 import 'package:rts_locator/src/dtr_logs/service/dtr_logs_service.dart';
 import 'package:rts_locator/src/dtr_logs/view/dtr_logs_view.dart';
-import 'package:rts_locator/src/facial_recognition/face_recognition_view.dart';
+import 'package:rts_locator/src/facial_recognition/facial_recognition_controller.dart';
 import 'package:rts_locator/src/location/location_controller.dart';
 import 'package:rts_locator/src/location/location_service.dart';
 import 'package:rts_locator/src/splash/splash_view.dart';
@@ -20,6 +20,8 @@ class HomeController extends GetxController {
   final isLoading = false.obs;
   final HomeService _homeService;
   final DtrLogsService _dtrLogsService = DtrLogsService();
+  final FacialRecognitionController _faceController =
+      Get.find<FacialRecognitionController>();
 
   HomeController(this._homeService);
 
@@ -93,35 +95,6 @@ class HomeController extends GetxController {
     update(); // Notify GetX listeners
   }
 
-  Future<File?> captureImage({
-    required String note,
-    required double latitude,
-    required double longitude,
-    required String plusCode,
-    required String tabHeader,
-    required String address_complete,
-  }) async {
-    final image = await _homeService.captureImage(
-        note: note,
-        latitude: latitude,
-        longitude: longitude,
-        plusCode: plusCode,
-        tabHeader: tabHeader,
-        address_complete: address_complete);
-    update(); // Notify GetX listeners
-    return image;
-  }
-
-  Future<String> uploadToCloud({required File imageFile}) async {
-    final imageUrl = await _homeService.uploadToCloud(imageFile: imageFile);
-    return imageUrl;
-  }
-
-  Future<void> uploadToDatabase({required Map<String, dynamic> data}) async {
-    isLoading.value = true;
-    await _homeService.uploadToDatabase(data: data);
-  }
-
   Future<void> captureAndUpload({
     required String note,
     required String attendanceType,
@@ -134,74 +107,88 @@ class HomeController extends GetxController {
     try {
       isLoading.value = true;
       File? modifiedImage;
+      final personName = box.read('fullname') as String?;
 
-      // --- Conditional Face Recognition ---
-      if (attendanceType == 'documentary') {
-        // 1. For 'documentary', capture image directly without face recognition
+      if (personName == null) {
+        Get.snackbar('Error', 'User not logged in.',
+            backgroundColor: Colors.red, colorText: Colors.white);
+        isLoading.value = false;
+        return;
+      }
+
+      // --- Unified Face Verification and Capture Logic ---
+      if (attendanceType != 'documentary') {
+        // For all types except 'documentary', perform face verification first
         Get.snackbar(
           'Processing',
-          'Capturing documentary image...',
+          'Verifying face...',
           duration: const Duration(seconds: 2),
           snackPosition: SnackPosition.BOTTOM,
         );
-        // The service method already adds the watermark
-        modifiedImage = await _homeService.captureImage(
-          note: note,
-          latitude: latitude,
-          longitude: longitude,
-          plusCode: plusCode,
-          tabHeader: tabHeader,
-          address_complete: address_complete,
-        );
-      } else {
-        // 2. For all other types, perform face verification first
-        Get.snackbar(
-          'Processing',
-          'Starting face verification...',
-          duration: const Duration(seconds: 1),
-          snackPosition: SnackPosition.BOTTOM,
-        );
-
-        disposeCamera();
-
-        final File? imageFromVerification = await Get.to<File?>(
-          () => const FaceRecognitionView(),
-          transition: Transition.rightToLeft,
-          duration: const Duration(milliseconds: 300),
-        );
-
-        //await initializeCamera();
-
-        if (imageFromVerification == null) {
+        final XFile? imageXFile = await cameraController?.takePicture();
+        if (imageXFile == null) {
           isLoading.value = false;
+          return;
+        }
+        final File imageFile = File(imageXFile.path);
+        final bool isVerified =
+            await _faceController.verifyFace(imageFile, personName);
+
+        if (!isVerified) {
           Get.snackbar(
-            'Cancelled',
-            'Face verification failed or was cancelled.',
+            'Verification Failed',
+            _faceController.recognitionResult.value ??
+                'Could not verify your face.',
             backgroundColor: Colors.red,
             colorText: Colors.white,
             snackPosition: SnackPosition.BOTTOM,
           );
+          isLoading.value = false;
           return;
         }
-
-        // Add watermark to the verified image
-        modifiedImage = await _homeService.addWatermarkAndSave(
-          imageFile: imageFromVerification,
-          note: note,
-          latitude: latitude,
-          longitude: longitude,
-          plusCode: plusCode,
-          tabHeader: tabHeader,
-          address_complete: address_complete,
-        );
+        // If verification is successful, use this image
+        modifiedImage = imageFile;
       }
 
-      // --- Common Logic (Upload and Navigate) ---
+      // Capture image (handles both documentary and verified images)
+      modifiedImage ??= await _homeService.captureImage(
+        note: note,
+        latitude: latitude,
+        longitude: longitude,
+        plusCode: plusCode,
+        tabHeader: tabHeader,
+        address_complete: address_complete,
+      );
+
       if (modifiedImage == null) {
         isLoading.value = false;
         Get.snackbar(
           'Error',
-          'Failed to process the image.',
+          'Failed to capture image.',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return;
+      }
+
+      // Add watermark to the verified or captured image
+      modifiedImage = await _homeService.addWatermarkAndSave(
+        imageFile: modifiedImage,
+        note: note,
+        latitude: latitude,
+        longitude: longitude,
+        plusCode: plusCode,
+        tabHeader: tabHeader,
+        address_complete: address_complete,
+      );
+
+      // --- FIX: Add a null check after watermarking ---
+      if (modifiedImage == null) {
+        isLoading.value = false;
+        Get.snackbar(
+          'Error',
+          'Failed to process image with watermark.',
           backgroundColor: Colors.red,
           colorText: Colors.white,
           snackPosition: SnackPosition.BOTTOM,
@@ -225,7 +212,7 @@ class HomeController extends GetxController {
         constraints: Constraints(networkType: NetworkType.connected),
         inputData: {
           'id': dataInDatabase,
-          'filePath': modifiedImage.path,
+          'filePath': modifiedImage.path, // This is now safe
         },
       );
 
@@ -256,19 +243,12 @@ class HomeController extends GetxController {
         snackPosition: SnackPosition.BOTTOM,
         duration: const Duration(seconds: 3),
       );
-      // Ensure camera is re-initialized on error
-      await initializeCamera();
     }
   }
 
   // Method to switch between cameras
   Future<void> switchCamera() async {
     await _homeService.switchCamera();
-    update(); // Notify GetX listeners
-  }
-
-  Future<void> autoSwitchCamera({required int selectedIndex}) async {
-    await _homeService.autoSwitchCamera(selectedIndex: selectedIndex);
     update(); // Notify GetX listeners
   }
 
