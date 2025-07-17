@@ -82,13 +82,13 @@ class _FaceRecognitionViewState extends State<FaceRecognitionView> {
       );
 
       await _cameraController!.initialize();
-      
+
       if (!mounted) return;
-      
+
       setState(() {
         _isCameraInitialized = true;
       });
-      
+
       // Auto-capture after 2 seconds
       Future.delayed(const Duration(seconds: 2), () {
         if (mounted && !_isProcessing && !_hasNavigated) {
@@ -104,7 +104,7 @@ class _FaceRecognitionViewState extends State<FaceRecognitionView> {
   /// Captures an image and passes it to the controller for verification.
   Future<void> _captureAndVerify() async {
     if (_isProcessing || _hasNavigated) return;
-    
+
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
       _showErrorAndGoBack("Camera not ready.");
       return;
@@ -145,7 +145,7 @@ class _FaceRecognitionViewState extends State<FaceRecognitionView> {
             duration: Duration(seconds: 1),
           ),
         );
-        
+
         // Wait a bit for the message to show, then navigate
         await Future.delayed(const Duration(milliseconds: 300));
         _navigateBack(true, imageFile: imageFile);
@@ -153,13 +153,13 @@ class _FaceRecognitionViewState extends State<FaceRecognitionView> {
         // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_controller.recognitionResult.value ?? 
+            content: Text(_controller.recognitionResult.value ??
                 "Could not verify face."),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 2),
           ),
         );
-        
+
         // Wait and navigate back with failure
         await Future.delayed(const Duration(milliseconds: 300));
         _navigateBack(false);
@@ -181,7 +181,7 @@ class _FaceRecognitionViewState extends State<FaceRecognitionView> {
       _navigateBack(false);
       return;
     }
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -189,7 +189,7 @@ class _FaceRecognitionViewState extends State<FaceRecognitionView> {
         duration: const Duration(seconds: 2),
       ),
     );
-    
+
     Future.delayed(const Duration(milliseconds: 300), () {
       _navigateBack(false);
     });
@@ -214,9 +214,7 @@ class _FaceRecognitionViewState extends State<FaceRecognitionView> {
           actions: [
             IconButton(
               icon: const Icon(Icons.close),
-              onPressed: _isProcessing 
-                  ? null 
-                  : () => _navigateBack(false),
+              onPressed: _isProcessing ? null : () => _navigateBack(false),
             ),
           ],
         ),
@@ -264,8 +262,9 @@ class _FaceRecognitionViewState extends State<FaceRecognitionView> {
                       Obx(() {
                         final message = _controller.recognitionResult.value ??
                             "Position your face in the frame";
-                        final isLoading = _controller.isLoading.value || _isProcessing;
-                        
+                        final isLoading =
+                            _controller.isLoading.value || _isProcessing;
+
                         return Text(
                           isLoading ? "Verifying..." : message,
                           textAlign: TextAlign.center,
@@ -280,8 +279,8 @@ class _FaceRecognitionViewState extends State<FaceRecognitionView> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
-                          onPressed: (_isCameraInitialized && 
-                                  !_isProcessing && 
+                          onPressed: (_isCameraInitialized &&
+                                  !_isProcessing &&
                                   !_controller.isLoading.value)
                               ? _captureAndVerify
                               : null,
