@@ -162,13 +162,15 @@ class HomeController extends GetxController {
           snackPosition: SnackPosition.BOTTOM,
         );
 
+        disposeCamera();
+
         final File? imageFromVerification = await Get.to<File?>(
           () => const FaceRecognitionView(),
           transition: Transition.rightToLeft,
           duration: const Duration(milliseconds: 300),
         );
 
-        await initializeCamera();
+        //await initializeCamera();
 
         if (imageFromVerification == null) {
           isLoading.value = false;

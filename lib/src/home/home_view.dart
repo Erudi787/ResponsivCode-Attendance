@@ -65,12 +65,12 @@ class _HomeViewState extends State<HomeView>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final controller = homeController.cameraController;
+    // final controller = homeController.cameraController;
 
-    // If the controller is null or not initialized, do nothing.
-    if (controller == null || !controller.value.isInitialized) {
-      return;
-    }
+    // // If the controller is null or not initialized, do nothing.
+    // if (controller == null || !controller.value.isInitialized) {
+    //   return;
+    // }
 
     if (state == AppLifecycleState.inactive) {
       // App is inactive, dispose of the camera.
