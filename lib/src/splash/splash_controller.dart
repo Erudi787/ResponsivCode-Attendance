@@ -18,18 +18,14 @@ class SplashController extends GetxController {
   SplashController(this._splashService);
 
   Future<void> checkToken() async {
-    // A short delay to allow services to fully initialize
     await Future.delayed(const Duration(milliseconds: 500));
 
     if (box.read('token') != null) {
       final fullname = box.read('fullname') as String?;
 
-      // Check if user is logged in and if their face is registered
       if (fullname != null && !_dataManager.containsKey(fullname)) {
-        // If not registered, navigate to the registration screen
         Get.offAllNamed(LiveRegistrationView.routeName, arguments: fullname);
       } else {
-        // Otherwise, proceed to the home screen
         Get.offAllNamed(HomeView.routeName);
       }
     } else {

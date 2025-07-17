@@ -1,5 +1,3 @@
-// lib/main.dart
-
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -10,7 +8,6 @@ import 'package:rts_locator/src/facial_recognition/face_data_manager.dart';
 import 'package:rts_locator/src/facial_recognition/facial_recognition_binding.dart';
 import 'package:rts_locator/src/facial_recognition/facial_recognition_service.dart';
 import 'package:rts_locator/src/home/home_service.dart';
-// Import the new logging controller
 import 'package:rts_locator/src/logging/logging_controller.dart';
 import 'package:rts_locator/src/permission/permission_controller.dart';
 import 'package:rts_locator/src/permission/permission_service.dart';
