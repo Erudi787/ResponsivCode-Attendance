@@ -12,7 +12,6 @@ import 'package:rts_locator/src/dtr_logs/view/dtr_logs_view.dart';
 import 'package:rts_locator/src/facial_recognition/facial_recognition_controller.dart';
 import 'package:rts_locator/src/location/location_controller.dart';
 import 'package:rts_locator/src/location/location_service.dart';
-import 'package:rts_locator/src/splash/splash_view.dart';
 import 'package:workmanager/workmanager.dart';
 import 'home_service.dart';
 
@@ -115,6 +114,13 @@ class HomeController extends GetxController {
         isLoading.value = false;
         return;
       }
+      
+      if (cameraController == null || !cameraController!.value.isInitialized) {
+        Get.snackbar('Error', 'Camera is not available.',
+            backgroundColor: Colors.red, colorText: Colors.white);
+        isLoading.value = false;
+        return;
+      }
 
       // --- Unified Face Verification and Capture Logic ---
       if (attendanceType != 'documentary') {
@@ -182,8 +188,7 @@ class HomeController extends GetxController {
         tabHeader: tabHeader,
         address_complete: address_complete,
       );
-
-      // --- FIX: Add a null check after watermarking ---
+      
       if (modifiedImage == null) {
         isLoading.value = false;
         Get.snackbar(
@@ -212,7 +217,7 @@ class HomeController extends GetxController {
         constraints: Constraints(networkType: NetworkType.connected),
         inputData: {
           'id': dataInDatabase,
-          'filePath': modifiedImage.path, // This is now safe
+          'filePath': modifiedImage.path,
         },
       );
 
@@ -227,11 +232,13 @@ class HomeController extends GetxController {
       );
 
       await checkAttendanceStatus(); // Re-check status after an action
+      
+      // --- FIX: Removed the navigation call that was causing the camera to dispose ---
       if (attendanceType == 'documentary') {
         Get.offAllNamed(DtrLogsView.routeName);
-      } else {
-        Get.offAllNamed(SplashView.routeName);
       }
+      // No 'else' block needed, as we want to stay on the HomeView.
+
     } catch (e) {
       isLoading.value = false;
       debugPrint('Error in captureAndUpload: $e');

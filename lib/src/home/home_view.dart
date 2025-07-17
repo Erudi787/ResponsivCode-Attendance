@@ -65,10 +65,14 @@ class _HomeViewState extends State<HomeView>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive) {
+    // --- FIX: Simplified and safer lifecycle handling ---
+    if (state == AppLifecycleState.paused) {
       homeController.disposeCamera();
     } else if (state == AppLifecycleState.resumed) {
-      homeController.initializeCamera();
+      // If the controller is null, it means it was disposed when paused.
+      if (homeController.cameraController == null) {
+        homeController.initializeCamera();
+      }
     }
   }
 
@@ -247,7 +251,7 @@ class _HomeViewState extends State<HomeView>
                     size: 26,
                   ),
                   onPressed: () {
-                    Get.offAllNamed(SettingsView.routeName);
+                    Get.toNamed(SettingsView.routeName);
                   },
                 ),
               )
