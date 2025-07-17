@@ -1,3 +1,5 @@
+// lib/src/home/home_service.dart
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -282,6 +284,8 @@ class HomeService {
   // Dispose the camera
   void disposeCamera() {
     _cameraController?.dispose();
+    // --- FIX: Set controller to null after disposal ---
+    _cameraController = null;
   }
 
   CameraController? get cameraController => _cameraController;

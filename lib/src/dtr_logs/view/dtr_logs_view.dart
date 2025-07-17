@@ -73,7 +73,8 @@ class _DtrLogsViewState extends State<DtrLogsView> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        Get.offAllNamed(HomeView.routeName);
+        //Get.offAllNamed(HomeView.routeName);
+        Get.back();
         return false;
       },
       child: Scaffold(
@@ -82,7 +83,8 @@ class _DtrLogsViewState extends State<DtrLogsView> {
           scrolledUnderElevation: 0,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () => Get.offAllNamed(HomeView.routeName),
+            //onPressed: () => Get.offAllNamed(HomeView.routeName),
+            onPressed: ()=> Get.back(),
           ),
           actions: [
             IconButton(

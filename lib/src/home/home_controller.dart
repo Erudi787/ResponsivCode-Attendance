@@ -6,13 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:rts_locator/src/dtr_logs/model/ot_logs_model.dart';
 import 'package:rts_locator/src/dtr_logs/model/time_logs_model.dart';
 import 'package:rts_locator/src/dtr_logs/service/dtr_logs_service.dart';
 import 'package:rts_locator/src/dtr_logs/view/dtr_logs_view.dart';
 import 'package:rts_locator/src/facial_recognition/facial_recognition_controller.dart';
 import 'package:rts_locator/src/location/location_controller.dart';
 import 'package:rts_locator/src/location/location_service.dart';
-import 'package:rts_locator/src/splash/splash_view.dart';
 import 'package:workmanager/workmanager.dart';
 import 'home_service.dart';
 
@@ -63,11 +63,20 @@ class HomeController extends GetxController {
         dateTo: dateTo,
       );
 
-      updateTabAvailability(timeLogs.isNotEmpty ? timeLogs.first : null);
+      final otLogs = await _dtrLogsService.getOtLogs(
+        employeeId: employeeId,
+        dateFrom: dateFrom,
+        dateTo: dateTo,
+      );
+
+      updateTabAvailability(
+        timeLogs.isNotEmpty ? timeLogs.first : null,
+        otLogs.isNotEmpty ? otLogs.first : null,
+      );
     }
   }
 
-  void updateTabAvailability(TimeLogsModel? log) {
+  void updateTabAvailability(TimeLogsModel? log, OtLogsModel? otLog) {
     if (log == null) {
       // No logs for today, so only time in is allowed
       tabAvailability['time_in']?.value = true;
@@ -83,11 +92,15 @@ class HomeController extends GetxController {
     final hasBreakOut = log.breakOut != null && log.breakOut!.isNotEmpty;
     final hasBreakIn = log.breakIn != null && log.breakIn!.isNotEmpty;
     final hasTimeOut = log.timeOut != null && log.timeOut!.isNotEmpty;
+    final hasOtIn = otLog?.otIn != null && otLog!.otIn!.isNotEmpty;
+    final hasOtOut = otLog?.otOut != null && otLog!.otOut!.isNotEmpty;
 
     tabAvailability['time_in']?.value = !hasTimeIn;
     tabAvailability['break_out']?.value = hasTimeIn && !hasBreakOut;
     tabAvailability['break_in']?.value = hasBreakOut && !hasBreakIn;
     tabAvailability['time_out']?.value = hasBreakIn && !hasTimeOut;
+    tabAvailability['ot_in']?.value = hasTimeOut && !hasOtIn;
+    tabAvailability['ot_out']?.value = hasTimeIn && !hasOtOut;
   }
 
   Future<void> initializeCamera() async {
@@ -111,6 +124,13 @@ class HomeController extends GetxController {
 
       if (personName == null) {
         Get.snackbar('Error', 'User not logged in.',
+            backgroundColor: Colors.red, colorText: Colors.white);
+        isLoading.value = false;
+        return;
+      }
+      
+      if (cameraController == null || !cameraController!.value.isInitialized) {
+        Get.snackbar('Error', 'Camera is not available.',
             backgroundColor: Colors.red, colorText: Colors.white);
         isLoading.value = false;
         return;
@@ -183,7 +203,34 @@ class HomeController extends GetxController {
         return;
       }
 
+<<<<<<< HEAD
       Fluttertoast.showToast(msg: 'Image processed, preparing upload.');
+=======
+      // Add watermark to the verified or captured image
+      modifiedImage = await _homeService.addWatermarkAndSave(
+        imageFile: modifiedImage,
+        note: note,
+        latitude: latitude,
+        longitude: longitude,
+        plusCode: plusCode,
+        tabHeader: tabHeader,
+        address_complete: address_complete,
+      );
+      
+      if (modifiedImage == null) {
+        isLoading.value = false;
+        Get.snackbar(
+          'Error',
+          'Failed to process image with watermark.',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return;
+      }
+
+      Fluttertoast.showToast(msg: 'Image processed successfully!');
+>>>>>>> b97d8d72b947a738521a9437c06a922b8e6a6e81
 
       // --- Step 4: Upload to Database and Schedule Background Upload ---
       final dataInDatabase = await _homeService.uploadToDatabase(data: {
@@ -200,7 +247,11 @@ class HomeController extends GetxController {
         constraints: Constraints(networkType: NetworkType.connected),
         inputData: {
           'id': dataInDatabase,
+<<<<<<< HEAD
           'filePath': watermarkedImage.path,
+=======
+          'filePath': modifiedImage.path,
+>>>>>>> b97d8d72b947a738521a9437c06a922b8e6a6e81
         },
       );
 
@@ -214,12 +265,18 @@ class HomeController extends GetxController {
         duration: const Duration(seconds: 3),
       );
 
+<<<<<<< HEAD
       await checkAttendanceStatus();
+=======
+      await checkAttendanceStatus(); // Re-check status after an action
+      
+      // --- FIX: Removed the navigation call that was causing the camera to dispose ---
+>>>>>>> b97d8d72b947a738521a9437c06a922b8e6a6e81
       if (attendanceType == 'documentary') {
         Get.offAllNamed(DtrLogsView.routeName);
-      } else {
-        Get.offAllNamed(SplashView.routeName);
       }
+      // No 'else' block needed, as we want to stay on the HomeView.
+
     } catch (e) {
       isLoading.value = false;
       debugPrint('Error in captureAndUpload: $e');

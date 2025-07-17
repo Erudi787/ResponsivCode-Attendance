@@ -28,7 +28,8 @@ class SettingsView extends StatelessWidget {
         title: const Text('Settings'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_sharp),
-          onPressed: () => Get.offAllNamed(HomeView.routeName),
+          // --- FIX: Changed to Get.back() ---
+          onPressed: () => Get.back(),
         ),
       ),
       body: Stack(

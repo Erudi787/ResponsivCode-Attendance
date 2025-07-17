@@ -9,7 +9,7 @@ import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:rts_locator/src/facial_recognition/face_data_manager.dart';
 import 'package:rts_locator/src/facial_recognition/facial_recognition_service.dart';
-import 'package:rts_locator/src/splash/splash_view.dart';
+import 'package:rts_locator/src/home/home_view.dart';
 
 /// A screen that guides the user through a live face registration process.
 ///
@@ -181,17 +181,21 @@ class _LiveRegistrationViewState extends State<LiveRegistrationView> {
   }
 
   Future<void> _showSuccessAndNavigate() async {
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text("✅ Registration complete for ${widget.personName}!"),
         backgroundColor: Colors.green,
-        duration: const Duration(seconds: 3),
+        duration: const Duration(seconds: 2),
       ),
     );
-    // Navigate to the home screen after successful registration
-    //Navigator.of(context).pushReplacementNamed(HomeView.routeName);
+    
+    // Dispose the camera controller for this view.
     await _cameraController?.dispose();
-    Get.offAllNamed(SplashView.routeName);
+
+    // --- FIX: Navigate directly to HomeView instead of SplashView ---
+    Get.offAllNamed(HomeView.routeName);
   }
 
   @override

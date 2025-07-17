@@ -65,10 +65,14 @@ class _HomeViewState extends State<HomeView>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive) {
+    // --- FIX: Simplified and safer lifecycle handling ---
+    if (state == AppLifecycleState.paused) {
       homeController.disposeCamera();
     } else if (state == AppLifecycleState.resumed) {
-      homeController.initializeCamera();
+      // If the controller is null, it means it was disposed when paused.
+      if (homeController.cameraController == null) {
+        homeController.initializeCamera();
+      }
     }
   }
 
@@ -247,7 +251,7 @@ class _HomeViewState extends State<HomeView>
                     size: 26,
                   ),
                   onPressed: () {
-                    Get.offAllNamed(SettingsView.routeName);
+                    Get.toNamed(SettingsView.routeName);
                   },
                 ),
               )
@@ -404,12 +408,24 @@ class _HomeViewState extends State<HomeView>
                                                     false;
 
                                                 if (!isEnabled) {
-                                                  Fluttertoast.showToast(
-                                                    msg:
-                                                        "You have already completed this action for today.",
-                                                    gravity:
-                                                        ToastGravity.CENTER,
-                                                  );
+                                                  if (attendanceType ==
+                                                          'ot_in' ||
+                                                      attendanceType ==
+                                                          'ot_out') {
+                                                    Fluttertoast.showToast(
+                                                      msg:
+                                                          "You must time out first before logging overtime.",
+                                                      gravity:
+                                                          ToastGravity.CENTER,
+                                                    );
+                                                  } else {
+                                                    Fluttertoast.showToast(
+                                                      msg:
+                                                          "You have already completed this action for today.",
+                                                      gravity:
+                                                          ToastGravity.CENTER,
+                                                    );
+                                                  }
                                                   return;
                                                 }
 
