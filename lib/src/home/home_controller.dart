@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:rts_locator/src/dtr_logs/model/ot_logs_model.dart';
 import 'package:rts_locator/src/dtr_logs/model/time_logs_model.dart';
 import 'package:rts_locator/src/dtr_logs/service/dtr_logs_service.dart';
 import 'package:rts_locator/src/dtr_logs/view/dtr_logs_view.dart';
@@ -62,11 +63,20 @@ class HomeController extends GetxController {
         dateTo: dateTo,
       );
 
-      updateTabAvailability(timeLogs.isNotEmpty ? timeLogs.first : null);
+      final otLogs = await _dtrLogsService.getOtLogs(
+        employeeId: employeeId,
+        dateFrom: dateFrom,
+        dateTo: dateTo,
+      );
+
+      updateTabAvailability(
+        timeLogs.isNotEmpty ? timeLogs.first : null,
+        otLogs.isNotEmpty ? otLogs.first : null,
+      );
     }
   }
 
-  void updateTabAvailability(TimeLogsModel? log) {
+  void updateTabAvailability(TimeLogsModel? log, OtLogsModel? otLog) {
     if (log == null) {
       // No logs for today, so only time in is allowed
       tabAvailability['time_in']?.value = true;
@@ -82,11 +92,15 @@ class HomeController extends GetxController {
     final hasBreakOut = log.breakOut != null && log.breakOut!.isNotEmpty;
     final hasBreakIn = log.breakIn != null && log.breakIn!.isNotEmpty;
     final hasTimeOut = log.timeOut != null && log.timeOut!.isNotEmpty;
+    final hasOtIn = otLog?.otIn != null && otLog!.otIn!.isNotEmpty;
+    final hasOtOut = otLog?.otOut != null && otLog!.otOut!.isNotEmpty;
 
     tabAvailability['time_in']?.value = !hasTimeIn;
     tabAvailability['break_out']?.value = hasTimeIn && !hasBreakOut;
     tabAvailability['break_in']?.value = hasBreakOut && !hasBreakIn;
     tabAvailability['time_out']?.value = hasBreakIn && !hasTimeOut;
+    tabAvailability['ot_in']?.value = hasTimeOut && !hasOtIn;
+    tabAvailability['ot_out']?.value = hasTimeIn && !hasOtOut;
   }
 
   Future<void> initializeCamera() async {
