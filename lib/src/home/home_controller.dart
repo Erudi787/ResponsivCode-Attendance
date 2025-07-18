@@ -102,7 +102,7 @@ class HomeController extends GetxController {
     tabAvailability['break_in']?.value = hasBreakOut && !hasBreakIn;
     tabAvailability['time_out']?.value = hasBreakIn && !hasTimeOut;
     tabAvailability['ot_in']?.value = hasTimeOut && !hasOtIn;
-    tabAvailability['ot_out']?.value = hasTimeIn && !hasOtOut;
+    tabAvailability['ot_out']?.value = hasOtIn && !hasOtOut;
   }
 
   Future<void> initializeCamera() async {
