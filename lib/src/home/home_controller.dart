@@ -18,10 +18,12 @@ import 'home_service.dart';
 
 class HomeController extends GetxController {
   final isLoading = false.obs;
+  final isCameraInitializing = true.obs;
   final HomeService _homeService;
   final DtrLogsService _dtrLogsService = DtrLogsService();
-  final FacialRecognitionController _faceController =
-      Get.find<FacialRecognitionController>();
+
+  // Direct access with late initialization
+  late final FacialRecognitionController _faceController;
 
   HomeController(this._homeService);
 
@@ -46,8 +48,28 @@ class HomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    initializeCamera();
-    checkAttendanceStatus();
+
+    // Initialize facial recognition controller
+    try {
+      _faceController = Get.find<FacialRecognitionController>();
+    } catch (e) {
+      debugPrint('FacialRecognitionController not found, creating new one');
+      Get.put(FacialRecognitionController());
+      _faceController = Get.find<FacialRecognitionController>();
+    }
+
+    // Initialize in sequence
+    _initializeSequentially();
+  }
+
+  Future<void> _initializeSequentially() async {
+    try {
+      await checkAttendanceStatus();
+      await Future.delayed(const Duration(milliseconds: 300));
+      await initializeCamera();
+    } catch (e) {
+      debugPrint('Initialization error: $e');
+    }
   }
 
   Future<void> checkAttendanceStatus() async {
@@ -106,8 +128,38 @@ class HomeController extends GetxController {
   }
 
   Future<void> initializeCamera() async {
-    await _homeService.initializeCamera();
-    update(); // Notify GetX listeners
+    try {
+      isCameraInitializing.value = true;
+      update();
+
+      await _homeService.initializeCamera();
+
+      isCameraInitializing.value = false;
+      update();
+    } catch (e) {
+      debugPrint('Error initializing camera: $e');
+      isCameraInitializing.value = false;
+      update();
+
+      // Fix: Safe error message handling
+      String errorMsg = e.toString();
+      if (errorMsg.length > 50) {
+        errorMsg = errorMsg.substring(0, 50) + '...';
+      }
+
+      Future.delayed(const Duration(seconds: 1), () {
+        if (Get.isSnackbarOpen != true) {
+          Get.snackbar(
+            'Camera Error',
+            errorMsg,
+            backgroundColor: Colors.orange,
+            colorText: Colors.white,
+            snackPosition: SnackPosition.BOTTOM,
+            duration: const Duration(seconds: 3),
+          );
+        }
+      });
+    }
   }
 
   Future<void> captureAndUpload({
@@ -219,33 +271,50 @@ class HomeController extends GetxController {
 
       Fluttertoast.showToast(msg: 'Image processed successfully!');
 
-      final dataInDatabase = await _homeService.uploadToDatabase(data: {
-        'note': note,
-        'attendance_type': attendanceType,
-        'long_lat': '$latitude, $longitude',
-        'address': plusCode,
-        'address_complete': address_complete,
-      });
+      try {
+        final dataInDatabase = await _homeService.uploadToDatabase(data: {
+          'note': note,
+          'attendance_type': attendanceType,
+          'long_lat': '$latitude, $longitude',
+          'address': plusCode,
+          'address_complete': address_complete,
+        });
 
-      await Workmanager().registerOneOffTask(
-        'uniqueName_${DateTime.now().millisecondsSinceEpoch}',
-        'uploadTask',
-        constraints: Constraints(networkType: NetworkType.connected),
-        inputData: {
-          'id': dataInDatabase,
-          'filePath': modifiedImage.path,
-        },
-      );
+        await Workmanager().registerOneOffTask(
+          'uniqueName_${DateTime.now().millisecondsSinceEpoch}',
+          'uploadTask',
+          constraints: Constraints(networkType: NetworkType.connected),
+          inputData: {
+            'id': dataInDatabase,
+            'filePath': modifiedImage.path,
+          },
+        );
 
-      isLoading.value = false;
-      Get.snackbar(
-        'Success',
-        'Attendance recorded successfully!',
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 2),
-      );
+        isLoading.value = false;
+        Get.snackbar(
+          'Success',
+          'Attendance recorded successfully!',
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 2),
+        );
+      } catch (e) {
+        // Handle offline - just save locally without trying to get ID from server
+        debugPrint('Network error, saving offline: $e');
+
+        isLoading.value = false;
+
+        // Still save the image locally
+        Fluttertoast.showToast(
+          msg: 'No internet. Attendance saved offline.',
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.CENTER,
+          backgroundColor: Colors.orange,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+      }
 
       await checkAttendanceStatus(); // Re-check status after an action
 

@@ -2,10 +2,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:rts_locator/src/environment/config_contoller.dart';
 import 'package:rts_locator/src/environment/config_service.dart';
 import 'package:rts_locator/src/facial_recognition/face_data_manager.dart';
 import 'package:rts_locator/src/facial_recognition/facial_recognition_binding.dart';
+import 'package:rts_locator/src/facial_recognition/facial_recognition_controller.dart';
 import 'package:rts_locator/src/facial_recognition/facial_recognition_service.dart';
 import 'package:rts_locator/src/home/home_service.dart';
 import 'package:rts_locator/src/logging/logging_controller.dart';
@@ -54,32 +56,62 @@ void callbackDispatcher() {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load();
+  
+  try {
+    await dotenv.load();
+    await GetStorage.init();
+    
+    Get.put(LoggingController());
+    
+    // Initialize Face Recognition Services with permanent registration
+    try {
+      final faceService = FaceRecognitionService();
+      await faceService.initialize();
+      Get.put(faceService, permanent: true);
+    } catch (e) {
+      debugPrint('Face service initialization failed: $e');
+    }
+    
+    final faceDataManager = FaceDataManager();
+    await faceDataManager.loadRegisteredFaces();
+    Get.put(faceDataManager, permanent: true);
+    
+    // Register FacialRecognitionController immediately as permanent
+    Get.put(FacialRecognitionController(), permanent: true);
+    
+    final settingsController = SettingsController(SettingsService());
+    final environmentController = ConfigController(ConfigService());
+    final permissionController = PermissionController(PermissionService());
 
-  // --- Initialize Logging Service ---
-  Get.put(LoggingController());
-  // ---------------------------------
+    await settingsController.loadSettings();
+    await environmentController.loadCloundConfig();
+    
+    try {
+      await permissionController.requestPermissions();
+    } catch (e) {
+      debugPrint('Permission request failed: $e');
+    }
 
-  // --- Initialize Face Recognition Services ---
-  // This ensures the services are ready before the app runs.
-  await Get.putAsync(() async => FaceRecognitionService()..initialize());
-  await Get.putAsync(() async => FaceDataManager()..loadRegisteredFaces());
-  // ------------------------------------------
+    Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
 
-  final settingsController = SettingsController(SettingsService());
-  final environmentController = ConfigController(ConfigService());
-  final permissionController = PermissionController(PermissionService());
+    // Still call bindings for any lazy initialization
+    FacialRecognitionBinding().dependencies();
 
-  await settingsController.loadSettings();
-  await environmentController.loadCloundConfig();
-  await permissionController.requestPermissions();
-
-  Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
-
-  // Set up the bindings for the facial recognition controller
-  FacialRecognitionBinding().dependencies();
-
-  runApp(MyApp(settingsController: settingsController));
+    runApp(MyApp(settingsController: settingsController));
+    
+  } catch (e, stackTrace) {
+    debugPrint('Critical initialization error: $e');
+    debugPrint('Stack trace: $stackTrace');
+    
+    runApp(MaterialApp(
+      home: Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: Text('Failed to initialize app: $e'),
+        ),
+      ),
+    ));
+  }
 }
 
 // import 'dart:io';
