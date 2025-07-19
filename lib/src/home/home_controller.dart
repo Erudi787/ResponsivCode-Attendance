@@ -60,9 +60,48 @@ class HomeController extends GetxController {
       _faceController = Get.find<FacialRecognitionController>();
     }
 
-    // Initialize in sequence
-    _initializeSequentially();
+    // Don't block on camera initialization
+    checkAttendanceStatus();
     _checkPendingSync();
+
+    // Initialize camera in background
+    Future.delayed(const Duration(milliseconds: 1000), () {
+      _initializeCameraQuietly();
+    });
+  }
+
+// Add this new method
+  Future<void> _initializeCameraQuietly() async {
+    try {
+      isCameraInitializing.value = true;
+      update();
+
+      // Check permission first
+      // final status = await Permission.camera.status;
+      // if (!status.isGranted) {
+      //   final result = await Permission.camera.request();
+      //   if (!result.isGranted) {
+      //     isCameraInitializing.value = false;
+      //     update();
+      //     return;
+      //   }
+      // }
+
+      // Short timeout, fail quietly
+      await _homeService.initializeCamera().timeout(
+        const Duration(seconds: 3),
+        onTimeout: () {
+          debugPrint('Camera init timeout - continuing without camera');
+        },
+      );
+
+      isCameraInitializing.value = false;
+      update();
+    } catch (e) {
+      debugPrint('Camera init failed quietly: $e');
+      isCameraInitializing.value = false;
+      update();
+    }
   }
 
   Future<void> _checkPendingSync() async {
@@ -164,13 +203,11 @@ class HomeController extends GetxController {
       isCameraInitializing.value = true;
       update();
 
-      await _homeService.initializeCamera().timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          debugPrint('Camera initialization timed out');
-          throw TimeoutException('Camera timeout');
-        }
-      );
+      await _homeService.initializeCamera().timeout(const Duration(seconds: 10),
+          onTimeout: () {
+        debugPrint('Camera initialization timed out');
+        throw TimeoutException('Camera timeout');
+      });
 
       isCameraInitializing.value = false;
       update();
