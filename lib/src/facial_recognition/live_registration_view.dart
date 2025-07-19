@@ -9,6 +9,7 @@ import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:rts_locator/src/facial_recognition/face_data_manager.dart';
 import 'package:rts_locator/src/facial_recognition/facial_recognition_service.dart';
+import 'package:rts_locator/src/home/home_controller.dart';
 import 'package:rts_locator/src/home/home_view.dart';
 
 /// A screen that guides the user through a live face registration process.
@@ -27,8 +28,8 @@ class LiveRegistrationView extends StatefulWidget {
 
 class _LiveRegistrationViewState extends State<LiveRegistrationView> {
   // --- Services and Managers ---
-  final FaceRecognitionService _faceService = FaceRecognitionService();
-  final FaceDataManager _dataManager = FaceDataManager();
+  late FaceRecognitionService _faceService = FaceRecognitionService();
+  late FaceDataManager _dataManager = FaceDataManager();
 
   // --- Camera and State Management ---
   CameraController? _cameraController;
@@ -56,7 +57,22 @@ class _LiveRegistrationViewState extends State<LiveRegistrationView> {
   @override
   void initState() {
     super.initState();
-    _initialize();
+
+    // Get services
+    _faceService = Get.find<FaceRecognitionService>();
+    _dataManager = Get.find<FaceDataManager>();
+
+    // Dispose existing camera
+    _disposeExistingCamera();
+
+    // Initialize with delay
+    Future.delayed(const Duration(milliseconds: 500), _initialize);
+  }
+
+  void _disposeExistingCamera() {
+    try {
+      Get.find<HomeController>().disposeCamera();
+    } catch (_) {}
   }
 
   /// Initializes both the camera and the face recognition service.
@@ -73,6 +89,11 @@ class _LiveRegistrationViewState extends State<LiveRegistrationView> {
 
   /// Initializes the front-facing camera.
   Future<void> _initializeCamera() async {
+    // Add at the beginning
+    if (_cameraController != null) {
+      await _cameraController!.dispose();
+      _cameraController = null;
+    }
     final status = await Permission.camera.request();
     if (status.isGranted) {
       final cameras = await availableCameras();
@@ -190,7 +211,7 @@ class _LiveRegistrationViewState extends State<LiveRegistrationView> {
         duration: const Duration(seconds: 2),
       ),
     );
-    
+
     // Dispose the camera controller for this view.
     await _cameraController?.dispose();
 
@@ -233,7 +254,10 @@ class _LiveRegistrationViewState extends State<LiveRegistrationView> {
                   Text(
                     _currentInstruction,
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                    style: Theme.of(context)
+                        .textTheme
+                        .headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 20),
                   if (_isCapturing) ...[
@@ -248,9 +272,11 @@ class _LiveRegistrationViewState extends State<LiveRegistrationView> {
                   ] else ...[
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 50, vertical: 15),
                       ),
-                      onPressed: _isCameraInitialized ? _startCaptureProcess : null,
+                      onPressed:
+                          _isCameraInitialized ? _startCaptureProcess : null,
                       child: const Text("Start Registration"),
                     ),
                   ]

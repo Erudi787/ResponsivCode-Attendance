@@ -1,5 +1,7 @@
 // lib/src/home/home_controller.dart
 
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -18,10 +20,12 @@ import 'home_service.dart';
 
 class HomeController extends GetxController {
   final isLoading = false.obs;
+  final isCameraInitializing = true.obs;
   final HomeService _homeService;
   final DtrLogsService _dtrLogsService = DtrLogsService();
-  final FacialRecognitionController _faceController =
-      Get.find<FacialRecognitionController>();
+
+  // Direct access with late initialization
+  late final FacialRecognitionController _faceController;
 
   HomeController(this._homeService);
 
@@ -46,8 +50,97 @@ class HomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    initializeCamera();
+
+    // Initialize facial recognition controller
+    try {
+      _faceController = Get.find<FacialRecognitionController>();
+    } catch (e) {
+      debugPrint('FacialRecognitionController not found, creating new one');
+      Get.put(FacialRecognitionController());
+      _faceController = Get.find<FacialRecognitionController>();
+    }
+
+    // Don't block on camera initialization
     checkAttendanceStatus();
+    _checkPendingSync();
+
+    // Initialize camera in background
+    Future.delayed(const Duration(milliseconds: 1000), () {
+      _initializeCameraQuietly();
+    });
+  }
+
+// Add this new method
+  Future<void> _initializeCameraQuietly() async {
+    try {
+      isCameraInitializing.value = true;
+      update();
+
+      // Check permission first
+      // final status = await Permission.camera.status;
+      // if (!status.isGranted) {
+      //   final result = await Permission.camera.request();
+      //   if (!result.isGranted) {
+      //     isCameraInitializing.value = false;
+      //     update();
+      //     return;
+      //   }
+      // }
+
+      // Short timeout, fail quietly
+      await _homeService.initializeCamera().timeout(
+        const Duration(seconds: 3),
+        onTimeout: () {
+          debugPrint('Camera init timeout - continuing without camera');
+        },
+      );
+
+      isCameraInitializing.value = false;
+      update();
+    } catch (e) {
+      debugPrint('Camera init failed quietly: $e');
+      isCameraInitializing.value = false;
+      update();
+    }
+  }
+
+  Future<void> _checkPendingSync() async {
+    try {
+      // Check network connectivity
+      final result = await InternetAddress.lookup('google.com')
+          .timeout(const Duration(seconds: 5));
+      if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+        // We have internet, check if there are pending tasks
+        // This will trigger any pending Workmanager tasks
+        print('Internet available, checking for pending sync tasks');
+
+        // You can also show a notification to user
+        final box = GetStorage();
+        final hasPendingSync = box.read('has_pending_sync') ?? false;
+
+        if (hasPendingSync) {
+          Get.snackbar(
+            'Syncing',
+            'Syncing offline attendance records...',
+            backgroundColor: Colors.blue,
+            colorText: Colors.white,
+            duration: const Duration(seconds: 2),
+          );
+        }
+      }
+    } catch (_) {
+      print('No internet connection on startup');
+    }
+  }
+
+  Future<void> _initializeSequentially() async {
+    try {
+      await checkAttendanceStatus();
+      await Future.delayed(const Duration(milliseconds: 300));
+      await initializeCamera();
+    } catch (e) {
+      debugPrint('Initialization error: $e');
+    }
   }
 
   Future<void> checkAttendanceStatus() async {
@@ -106,8 +199,42 @@ class HomeController extends GetxController {
   }
 
   Future<void> initializeCamera() async {
-    await _homeService.initializeCamera();
-    update(); // Notify GetX listeners
+    try {
+      isCameraInitializing.value = true;
+      update();
+
+      await _homeService.initializeCamera().timeout(const Duration(seconds: 10),
+          onTimeout: () {
+        debugPrint('Camera initialization timed out');
+        throw TimeoutException('Camera timeout');
+      });
+
+      isCameraInitializing.value = false;
+      update();
+    } catch (e) {
+      debugPrint('Error initializing camera: $e');
+      isCameraInitializing.value = false;
+      update();
+
+      // Fix: Safe error message handling
+      String errorMsg = e.toString();
+      if (errorMsg.length > 50) {
+        errorMsg = errorMsg.substring(0, 50) + '...';
+      }
+
+      Future.delayed(const Duration(seconds: 1), () {
+        if (Get.isSnackbarOpen != true) {
+          Get.snackbar(
+            'Camera Error',
+            errorMsg,
+            backgroundColor: Colors.orange,
+            colorText: Colors.white,
+            snackPosition: SnackPosition.BOTTOM,
+            duration: const Duration(seconds: 3),
+          );
+        }
+      });
+    }
   }
 
   Future<void> captureAndUpload({
@@ -219,33 +346,81 @@ class HomeController extends GetxController {
 
       Fluttertoast.showToast(msg: 'Image processed successfully!');
 
-      final dataInDatabase = await _homeService.uploadToDatabase(data: {
-        'note': note,
-        'attendance_type': attendanceType,
-        'long_lat': '$latitude, $longitude',
-        'address': plusCode,
-        'address_complete': address_complete,
-      });
+      try {
+        final dataInDatabase = await _homeService.uploadToDatabase(data: {
+          'note': note,
+          'attendance_type': attendanceType,
+          'long_lat': '$latitude, $longitude',
+          'address': plusCode,
+          'address_complete': address_complete,
+        });
 
-      await Workmanager().registerOneOffTask(
-        'uniqueName_${DateTime.now().millisecondsSinceEpoch}',
-        'uploadTask',
-        constraints: Constraints(networkType: NetworkType.connected),
-        inputData: {
-          'id': dataInDatabase,
-          'filePath': modifiedImage.path,
-        },
-      );
+        await Workmanager().registerOneOffTask(
+          'uniqueName_${DateTime.now().millisecondsSinceEpoch}',
+          'uploadTask',
+          constraints: Constraints(networkType: NetworkType.connected),
+          inputData: {
+            'id': dataInDatabase,
+            'filePath': modifiedImage.path,
+          },
+        );
 
-      isLoading.value = false;
-      Get.snackbar(
-        'Success',
-        'Attendance recorded successfully!',
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 2),
-      );
+        isLoading.value = false;
+        Get.snackbar(
+          'Success',
+          'Attendance recorded successfully!',
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 2),
+        );
+      } catch (e) {
+        // Handle offline - just save locally without trying to get ID from server
+        debugPrint('Network error, saving offline: $e');
+
+        // Set pending sync flag
+        final box = GetStorage();
+        await box.write('has_pending_sync', true);
+
+        // IMPORTANT: Still register Workmanager task for offline sync
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+
+        // Serialize attendance data to JSON string to avoid HashMap error
+        final attendanceDataJson = jsonEncode({
+          'note': note,
+          'attendance_type': attendanceType,
+          'long_lat': '$latitude, $longitude',
+          'address': plusCode,
+          'address_complete': address_complete,
+          'id': box.read('user_id'), // Include user_id
+        });
+
+        await Workmanager().registerOneOffTask(
+          'offline_$timestamp',
+          'uploadTask',
+          constraints: Constraints(
+            networkType: NetworkType.connected, // Will only run when connected
+          ),
+          inputData: {
+            'isOffline': true, // Flag to indicate offline upload
+            'filePath': modifiedImage.path,
+            'attendanceDataJson':
+                attendanceDataJson, // Pass as JSON string, NOT as Map
+          },
+        );
+
+        isLoading.value = false;
+
+        // Still save the image locally
+        Fluttertoast.showToast(
+          msg: 'No internet. Attendance saved offline.',
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.CENTER,
+          backgroundColor: Colors.orange,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+      }
 
       await checkAttendanceStatus(); // Re-check status after an action
 

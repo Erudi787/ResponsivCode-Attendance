@@ -94,6 +94,10 @@ class MyApp extends StatelessWidget {
           themeMode: settingsController.themeMode,
           getPages: [
             GetPage(
+              name: HomeView.routeName,
+              page: () => const HomeViewSafe(), // Use safe wrapper
+            ),
+            GetPage(
               name: SplashView.routeName,
               page: () => SplashView(),
             ),

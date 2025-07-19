@@ -10,14 +10,21 @@ import 'package:rts_locator/src/facial_recognition/facial_recognition_service.da
 class FacialRecognitionBinding extends Bindings {
   @override
   void dependencies() {
-    // Register the FaceRecognitionService as a singleton. `fenix: true` ensures
-    // that the service is re-initialized if it's ever accidentally removed.
-    Get.lazyPut<FaceRecognitionService>(() => FaceRecognitionService(), fenix: true);
+    // Use Get.put with permanent for immediate registration
+    Get.put<FaceRecognitionService>(
+      FaceRecognitionService(), 
+      permanent: true
+    );
 
-    // Register the FaceDataManager as a singleton.
-    Get.lazyPut<FaceDataManager>(() => FaceDataManager(), fenix: true);
+    Get.put<FaceDataManager>(
+      FaceDataManager(), 
+      permanent: true
+    );
 
-    // Register the FacialRecognitionController. It will be created when first used.
-    Get.lazyPut<FacialRecognitionController>(() => FacialRecognitionController());
+    // Use lazyPut with fenix for the controller
+    Get.lazyPut<FacialRecognitionController>(
+      () => FacialRecognitionController(),
+      fenix: true // This ensures it's recreated if disposed
+    );
   }
 }

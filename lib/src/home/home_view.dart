@@ -18,6 +18,140 @@ import 'package:rts_locator/src/settings/settings_view.dart';
 import 'dart:math' as math;
 import 'package:http/http.dart' as http;
 
+class HomeViewSafe extends StatelessWidget {
+  const HomeViewSafe({super.key});
+
+  static const routeName = '/';
+
+  @override
+  Widget build(BuildContext context) {
+    // Ensure we're not in a transitional state
+    // if (!mounted) {
+    //   return const SizedBox.shrink();
+    // }
+
+    // Ensure controller exists
+    if (!Get.isRegistered<HomeController>()) {
+      Get.put(HomeController(HomeService()));
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 20),
+              Text(
+                'Initializing...',
+                style: GoogleFonts.poppins(fontSize: 16),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    try {
+      var height = MediaQuery.of(context).size.height;
+      var width = MediaQuery.of(context).size.width;
+
+      // Your existing code...
+    } catch (e) {
+      // If any error occurs, show it
+      return Scaffold(
+        backgroundColor: Colors.orange,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.warning, size: 80, color: Colors.white),
+                const SizedBox(height: 20),
+                const Text(
+                  'Build Error in HomeView',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  e.toString(),
+                  style: const TextStyle(color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    try {
+      // Try to create HomeView
+      return const HomeView();
+    } catch (e, stack) {
+      // If it fails, show error screen
+      return Scaffold(
+        backgroundColor: Colors.red,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  size: 80,
+                  color: Colors.white,
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'HomeView Error',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: SelectableText(
+                    'Error: ${e.toString()}\n\nStack: ${stack.toString().substring(0, 200)}...',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontFamily: 'monospace',
+                    ),
+                    textAlign: TextAlign.left,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    Get.offNamed('/login');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.red,
+                  ),
+                  child: const Text('Back to Login'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+  }
+}
+
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
 
@@ -29,7 +163,7 @@ class HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<HomeView>
     with WidgetsBindingObserver, TickerProviderStateMixin {
-  final HomeController homeController = Get.put(HomeController(HomeService()));
+  HomeController homeController = Get.put(HomeController(HomeService()));
   final LocationController locationController =
       Get.put(LocationController(LocationService()));
   final TextEditingController noteController = TextEditingController();
@@ -77,16 +211,30 @@ class _HomeViewState extends State<HomeView>
   }
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    homeController.checkAttendanceStatus();
-    // Initialize TabController with regular tabs
-    _tabController =
-        TabController(length: regularTabs.length, vsync: this, initialIndex: 1);
-    _tabController.addListener(_handleTabSelection);
-    device();
+void initState() {
+  super.initState();
+  
+  // Ensure controller exists
+  if (!Get.isRegistered<HomeController>()) {
+    Get.put(HomeController(HomeService()));
   }
+  
+  // Get the controller
+  homeController = Get.find<HomeController>();
+  
+  WidgetsBinding.instance.addObserver(this);
+  _tabController = TabController(
+    length: regularTabs.length, 
+    vsync: this, 
+    initialIndex: 1
+  );
+  _tabController.addListener(_handleTabSelection);
+  
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    homeController.checkAttendanceStatus();
+    device();
+  });
+}
 
   void _handleTabSelection() {
     // only update state if the index has changed
@@ -213,6 +361,36 @@ class _HomeViewState extends State<HomeView>
 
   @override
   Widget build(BuildContext context) {
+    try {
+      final controller = Get.find<HomeController>();
+      print('🏠 HomeView: HomeController found');
+    } catch (e) {
+      print('🏠 HomeView: HomeController NOT FOUND - ERROR: $e');
+
+      // If controller doesn't exist, show error screen
+      return Scaffold(
+        backgroundColor: Colors.red, // RED background to make it obvious
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error, size: 64, color: Colors.white),
+              const SizedBox(height: 20),
+              const Text(
+                'Controller Error',
+                style: TextStyle(color: Colors.white, fontSize: 24),
+              ),
+              Text(
+                '$e',
+                style: const TextStyle(color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     var height = MediaQuery.of(context).size.height;
     var width = MediaQuery.of(context).size.width;
 

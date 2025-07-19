@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:rts_locator/src/home/home_controller.dart';
+import 'package:rts_locator/src/home/home_debug_view.dart';
+import 'package:rts_locator/src/home/home_service.dart';
+import 'package:rts_locator/src/home/home_view.dart';
 import 'package:rts_locator/src/login/login_controller.dart';
 import 'package:rts_locator/src/login/login_service.dart';
 
@@ -132,7 +136,8 @@ class _LoginViewState extends State<LoginView> {
                                         ),
                                         textInputAction: TextInputAction.next,
                                         onFieldSubmitted: (_) {
-                                          FocusScope.of(context).requestFocus(_passwordFocusNode);
+                                          FocusScope.of(context)
+                                              .requestFocus(_passwordFocusNode);
                                         },
                                         validator: (value) {
                                           value =
@@ -196,8 +201,10 @@ class _LoginViewState extends State<LoginView> {
                                       onFieldSubmitted: (_) {
                                         if (_formKey.currentState!.validate()) {
                                           _loginController.login(
-                                            username: _usernameController.text.trim(), 
-                                            password: _passwordController.text.trim(),
+                                            username:
+                                                _usernameController.text.trim(),
+                                            password:
+                                                _passwordController.text.trim(),
                                           );
                                         }
                                       },
@@ -280,7 +287,25 @@ class _LoginViewState extends State<LoginView> {
                               }),
                             )
                           ],
-                        )
+                        ),
+                        // Debug button - REMOVE IN PRODUCTION
+                        ElevatedButton(
+                          onPressed: () {
+                            Get.snackbar(
+                              'Debug Navigation',
+                              'Going to debug view...',
+                              backgroundColor: Colors.orange,
+                              colorText: Colors.white,
+                            );
+
+                            // Navigate to debug view
+                            Get.to(() => const HomeDebugView());
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                          ),
+                          child: const Text('DEBUG: Home View'),
+                        ),
                       ],
                     ),
                   ),
