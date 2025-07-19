@@ -19,6 +19,8 @@ import 'src/app.dart';
 import 'src/settings/settings_controller.dart';
 import 'src/settings/settings_service.dart';
 
+import 'dart:convert';
+
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
@@ -27,28 +29,78 @@ void callbackDispatcher() {
       await dotenv.load();
       print("dotenv loaded");
 
+      // Initialize GetStorage for background task
+      await GetStorage.init();
+
       final homeService = HomeService();
       print("HomeService initialized");
 
       final filePath = inputData?['filePath'];
-      final id = inputData?['id'];
-      print("FilePath: $filePath, ID: $id");
+      final isOffline = inputData?['isOffline'] ?? false;
+
+      print("FilePath: $filePath, IsOffline: $isOffline");
 
       if (filePath != null && File(filePath).existsSync()) {
         final File modifiedImage = File(filePath);
-        final uploadedUrl =
-            await homeService.uploadToCloud(imageFile: modifiedImage);
 
-        if (uploadedUrl.isNotEmpty) {
-          await homeService.updateToDatabase(
-            data: {'id': id, 'photo_url': uploadedUrl},
+        if (isOffline) {
+          // Handle offline upload
+          final attendanceDataJson =
+              inputData?['attendanceDataJson']; // This is a JSON string
+          if (attendanceDataJson != null) {
+            print("Processing offline upload...");
+
+            // Decode JSON string back to Map
+            final Map<String, dynamic> attendanceData =
+                jsonDecode(attendanceDataJson);
+            print("Decoded attendance data: $attendanceData");
+
+            // First, upload attendance data to get ID
+            final dataInDatabase = await homeService.uploadToDatabase(
+              data: attendanceData,
+            );
+
+            // Then upload the image
+            final uploadedUrl = await homeService.uploadToCloud(
+              imageFile: modifiedImage,
+            );
+
+            if (uploadedUrl.isNotEmpty && dataInDatabase != null) {
+              // Link the image to the attendance record
+              await homeService.updateToDatabase(
+                data: {
+                  'id': dataInDatabase,
+                  'photo_url': uploadedUrl,
+                },
+              );
+
+              // Clear the pending sync flag
+              final box = GetStorage();
+              await box.write('has_pending_sync', false);
+              print("Offline sync completed successfully!");
+            }
+          }
+        } else {
+          // Regular flow (online upload with ID already available)
+          final id = inputData?['id'];
+          print("Regular upload - ID: $id");
+
+          final uploadedUrl = await homeService.uploadToCloud(
+            imageFile: modifiedImage,
           );
+
+          if (uploadedUrl.isNotEmpty) {
+            await homeService.updateToDatabase(
+              data: {'id': id, 'photo_url': uploadedUrl},
+            );
+          }
         }
       }
       return Future.value(true);
     } catch (e, stackTrace) {
-      print("Error: $e");
+      print("Error in callbackDispatcher: $e");
       print("StackTrace: $stackTrace");
+      // Don't clear pending sync flag on error
       return Future.value(false);
     }
   });
@@ -56,13 +108,13 @@ void callbackDispatcher() {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   try {
     await dotenv.load();
     await GetStorage.init();
-    
+
     Get.put(LoggingController());
-    
+
     // Initialize Face Recognition Services with permanent registration
     try {
       final faceService = FaceRecognitionService();
@@ -71,21 +123,21 @@ void main() async {
     } catch (e) {
       debugPrint('Face service initialization failed: $e');
     }
-    
+
     final faceDataManager = FaceDataManager();
     await faceDataManager.loadRegisteredFaces();
     Get.put(faceDataManager, permanent: true);
-    
+
     // Register FacialRecognitionController immediately as permanent
     Get.put(FacialRecognitionController(), permanent: true);
-    
+
     final settingsController = SettingsController(SettingsService());
     final environmentController = ConfigController(ConfigService());
     final permissionController = PermissionController(PermissionService());
 
     await settingsController.loadSettings();
     await environmentController.loadCloundConfig();
-    
+
     try {
       await permissionController.requestPermissions();
     } catch (e) {
@@ -98,11 +150,10 @@ void main() async {
     FacialRecognitionBinding().dependencies();
 
     runApp(MyApp(settingsController: settingsController));
-    
   } catch (e, stackTrace) {
     debugPrint('Critical initialization error: $e');
     debugPrint('Stack trace: $stackTrace');
-    
+
     runApp(MaterialApp(
       home: Scaffold(
         backgroundColor: Colors.white,

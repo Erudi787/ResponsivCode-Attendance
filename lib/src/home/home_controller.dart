@@ -1,5 +1,7 @@
 // lib/src/home/home_controller.dart
 
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -60,6 +62,36 @@ class HomeController extends GetxController {
 
     // Initialize in sequence
     _initializeSequentially();
+    _checkPendingSync();
+  }
+
+  Future<void> _checkPendingSync() async {
+    try {
+      // Check network connectivity
+      final result = await InternetAddress.lookup('google.com')
+          .timeout(const Duration(seconds: 5));
+      if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+        // We have internet, check if there are pending tasks
+        // This will trigger any pending Workmanager tasks
+        print('Internet available, checking for pending sync tasks');
+
+        // You can also show a notification to user
+        final box = GetStorage();
+        final hasPendingSync = box.read('has_pending_sync') ?? false;
+
+        if (hasPendingSync) {
+          Get.snackbar(
+            'Syncing',
+            'Syncing offline attendance records...',
+            backgroundColor: Colors.blue,
+            colorText: Colors.white,
+            duration: const Duration(seconds: 2),
+          );
+        }
+      }
+    } catch (_) {
+      print('No internet connection on startup');
+    }
   }
 
   Future<void> _initializeSequentially() async {
@@ -132,7 +164,13 @@ class HomeController extends GetxController {
       isCameraInitializing.value = true;
       update();
 
-      await _homeService.initializeCamera();
+      await _homeService.initializeCamera().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint('Camera initialization timed out');
+          throw TimeoutException('Camera timeout');
+        }
+      );
 
       isCameraInitializing.value = false;
       update();
@@ -302,6 +340,37 @@ class HomeController extends GetxController {
       } catch (e) {
         // Handle offline - just save locally without trying to get ID from server
         debugPrint('Network error, saving offline: $e');
+
+        // Set pending sync flag
+        final box = GetStorage();
+        await box.write('has_pending_sync', true);
+
+        // IMPORTANT: Still register Workmanager task for offline sync
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+
+        // Serialize attendance data to JSON string to avoid HashMap error
+        final attendanceDataJson = jsonEncode({
+          'note': note,
+          'attendance_type': attendanceType,
+          'long_lat': '$latitude, $longitude',
+          'address': plusCode,
+          'address_complete': address_complete,
+          'id': box.read('user_id'), // Include user_id
+        });
+
+        await Workmanager().registerOneOffTask(
+          'offline_$timestamp',
+          'uploadTask',
+          constraints: Constraints(
+            networkType: NetworkType.connected, // Will only run when connected
+          ),
+          inputData: {
+            'isOffline': true, // Flag to indicate offline upload
+            'filePath': modifiedImage.path,
+            'attendanceDataJson':
+                attendanceDataJson, // Pass as JSON string, NOT as Map
+          },
+        );
 
         isLoading.value = false;
 

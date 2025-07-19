@@ -64,6 +64,10 @@ class LoginController extends GetxController {
 
         // Navigate with clean transition
         if (fullname != null && !_dataManager.containsKey(fullname)) {
+          // Dispose cameras before navigation
+          try {
+            Get.find<HomeController>().disposeCamera();
+          } catch (_) {}
           Get.offAll(
             () => LiveRegistrationView(personName: fullname),
             transition: Transition.fade,

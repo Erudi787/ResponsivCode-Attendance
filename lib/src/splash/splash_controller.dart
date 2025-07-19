@@ -20,52 +20,56 @@ class SplashController extends GetxController {
   SplashController(this._splashService);
 
   Future<void> checkToken() async {
-  await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 500));
 
-  try {
-    // Close any open overlays
-    if (Get.isDialogOpen ?? false) {
-      Get.back();
-    }
-    if (Get.isSnackbarOpen ?? false) {
-      Get.closeCurrentSnackbar();
-    }
-    
-    if (box.read('token') != null) {
-      final fullname = box.read('fullname') as String?;
-      
-      // Ensure HomeController is registered
-      if (!Get.isRegistered<HomeController>()) {
-        Get.put(HomeController(HomeService()));
+    try {
+      // Close any open overlays
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
+      if (Get.isSnackbarOpen ?? false) {
+        Get.closeCurrentSnackbar();
       }
 
-      if (fullname != null && !_dataManager.containsKey(fullname)) {
-        Get.offAll(
-          () => LiveRegistrationView(personName: fullname),
-          transition: Transition.noTransition,
-          duration: Duration.zero,
-        );
+      if (box.read('token') != null) {
+        final fullname = box.read('fullname') as String?;
+
+        // Ensure HomeController is registered
+        if (!Get.isRegistered<HomeController>()) {
+          Get.put(HomeController(HomeService()));
+        }
+
+        if (fullname != null && !_dataManager.containsKey(fullname)) {
+          // Dispose cameras before navigation
+          try {
+            Get.find<HomeController>().disposeCamera();
+          } catch (_) {}
+          Get.offAll(
+            () => LiveRegistrationView(personName: fullname),
+            transition: Transition.noTransition,
+            duration: Duration.zero,
+          );
+        } else {
+          Get.offAll(
+            () => const HomeView(),
+            transition: Transition.noTransition,
+            duration: Duration.zero,
+          );
+        }
       } else {
         Get.offAll(
-          () => const HomeView(),
+          () => const LoginView(),
           transition: Transition.noTransition,
           duration: Duration.zero,
         );
       }
-    } else {
+    } catch (e) {
+      print('Splash navigation error: $e');
       Get.offAll(
         () => const LoginView(),
         transition: Transition.noTransition,
         duration: Duration.zero,
       );
     }
-  } catch (e) {
-    print('Splash navigation error: $e');
-    Get.offAll(
-      () => const LoginView(),
-      transition: Transition.noTransition,
-      duration: Duration.zero,
-    );
   }
-}
 }
